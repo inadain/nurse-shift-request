@@ -688,10 +688,11 @@ function renderEmpTable() {
     <td>${e.employee_id}</td>
     <td style="font-weight:600">${e.name}</td>
     <td><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#ECFDF5;color:#065F46">${e.role || '訪問看護師'}</span></td>
+    <td style="font-family:monospace;font-size:14px;letter-spacing:.05em;color:#134E4A;font-weight:700">${e.plain_password || '—'}</td>
     <td><button style="font-size:11px;padding:4px 10px;border:1px solid #FECACA;border-radius:6px;background:#FEF2F2;color:#EF4444;cursor:pointer" onclick="deactivateEmp('${e.employee_id}')">削除</button></td>
   </tr>`).join('');
   document.getElementById('emp-table-wrap').innerHTML = `<table class="emp-table">
-    <thead><tr><th>ID</th><th>氏名</th><th>役職</th><th></th></tr></thead>
+    <thead><tr><th>ID</th><th>氏名</th><th>役職</th><th>パスワード</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
