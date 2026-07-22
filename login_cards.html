@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>訪問看護 シフト希望申請 ログインカード</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<style>
+  @page { size: A4; margin: 10mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif; background: #f0f0f0; padding: 16px; }
+  .page { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; width: 190mm; height: 270mm; margin: 0 auto; }
+  .card { background: #fff; border-radius: 10px; border: 2px solid #0D9488; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .card-header { text-align: center; width: 100%; border-bottom: 1.5px solid #e5e7eb; padding-bottom: 8px; }
+  .system-name { font-size: 9px; color: #6b7280; letter-spacing: .05em; }
+  .staff-name { font-size: 20px; font-weight: 800; color: #134E4A; margin-top: 3px; }
+  .qr-wrap { width: 110px; height: 110px; }
+  .qr-wrap canvas, .qr-wrap img { width: 110px !important; height: 110px !important; }
+  .info-table { width: 100%; border-collapse: collapse; }
+  .info-table td:first-child { font-size: 10px; font-weight: 600; color: #6b7280; padding: 5px 8px 5px 0; width: 90px; }
+  .info-table td:last-child { font-size: 16px; font-weight: 800; color: #134E4A; font-family: monospace; letter-spacing: .1em; }
+  .url-box { font-size: 8px; color: #6b7280; text-align: center; word-break: break-all; background: #f9fafb; border-radius: 6px; padding: 5px 8px; width: 100%; }
+  .note { font-size: 9px; color: #9ca3af; text-align: center; }
+  @media print { body { background: #fff; padding: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="card">
+    <div class="card-header">
+      <div class="system-name">訪問看護 シフト希望申請システム</div>
+      <div class="staff-name">兼信 真理</div>
+    </div>
+    <div class="qr-wrap" id="qr1"></div>
+    <table class="info-table">
+      <tr><td>職員 ID</td><td>V001</td></tr>
+      <tr><td>パスワード</td><td>72px38</td></tr>
+    </table>
+    <div class="url-box">https://inadain.github.io/nurse-shift-request/</div>
+    <div class="note">※このカードは大切に保管してください</div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="system-name">訪問看護 シフト希望申請システム</div>
+      <div class="staff-name">柚木 清美</div>
+    </div>
+    <div class="qr-wrap" id="qr2"></div>
+    <table class="info-table">
+      <tr><td>職員 ID</td><td>V002</td></tr>
+      <tr><td>パスワード</td><td>n4x910</td></tr>
+    </table>
+    <div class="url-box">https://inadain.github.io/nurse-shift-request/</div>
+    <div class="note">※このカードは大切に保管してください</div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="system-name">訪問看護 シフト希望申請システム</div>
+      <div class="staff-name">芦内 薫</div>
+    </div>
+    <div class="qr-wrap" id="qr3"></div>
+    <table class="info-table">
+      <tr><td>職員 ID</td><td>V003</td></tr>
+      <tr><td>パスワード</td><td>x2571z</td></tr>
+    </table>
+    <div class="url-box">https://inadain.github.io/nurse-shift-request/</div>
+    <div class="note">※このカードは大切に保管してください</div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="system-name">訪問看護 シフト希望申請システム</div>
+      <div class="staff-name">山室 八千代</div>
+    </div>
+    <div class="qr-wrap" id="qr4"></div>
+    <table class="info-table">
+      <tr><td>職員 ID</td><td>V004</td></tr>
+      <tr><td>パスワード</td><td>7385mx</td></tr>
+    </table>
+    <div class="url-box">https://inadain.github.io/nurse-shift-request/</div>
+    <div class="note">※このカードは大切に保管してください</div>
+  </div>
+
+</div>
+<script>
+const URL = "https://inadain.github.io/nurse-shift-request/";
+const opts = { width:110, height:110, colorDark:"#134E4A", colorLight:"#fff", correctLevel: QRCode.CorrectLevel.M };
+[1,2,3,4].forEach(i => new QRCode(document.getElementById("qr"+i), {...opts, text: URL}));
+</script>
+</body>
+</html>
