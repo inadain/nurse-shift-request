@@ -126,6 +126,8 @@ body{font-family:-apple-system,'Hiragino Sans','Yu Gothic',sans-serif;background
 .type-sel-btn.sel-yasumi.active{background:var(--yasumi);border-color:var(--yasumi);color:#fff}
 .type-sel-btn.sel-yukyu.active{background:var(--yukyu);border-color:var(--yukyu);color:#fff}
 .type-sel-btn:not(.active):hover{border-color:var(--teal)}
+.type-sel-btn:disabled{opacity:.45;cursor:not-allowed;background:#F3F4F6}
+.type-sel-btn:disabled:hover{border-color:var(--border)}
 
 /* Emp table */
 .emp-table{width:100%;border-collapse:collapse;font-size:13px}
@@ -305,6 +307,8 @@ const COLORS = ['#E53E3E','#D69E2E','#38A169','#3182CE','#805AD5','#DD6B20','#31
 
 const S = {
   sb: null, user: null,
+  hash: null,      // ログイン中だけメモリに置く本人確認用のハッシュ（保存はしない）
+  myNote: '',
   employees: [], allReqs: {}, allNotes: {},
   myReqs: {},
   reqYear: null, reqMonth: null,
@@ -353,9 +357,9 @@ function getReqMonthInfo() {
 // ── Init ──────────────────────────────────
 window.addEventListener('load', async () => {
   S.sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  const { count } = await S.sb.from('employees').select('*', { count:'exact', head:true })
-    .like('employee_id', `${CONFIG.SYSTEM_PREFIX}%`).eq('is_admin', true);
-  if (count === 0) { showPage('page-setup'); return; }
+  // 表を直接読まず、データベース側の関数に判定させる
+  const { data: needSetup } = await S.sb.rpc('nurse_needs_setup');
+  if (needSetup) { showPage('page-setup'); return; }
   showPage('page-login');
 });
 
@@ -369,8 +373,13 @@ async function setupAdmin() {
   if (!id || !name || pw.length < 4) { err.textContent = 'すべての項目を入力してください（パスワード4文字以上）'; err.style.display = 'block'; return; }
   if (!id.startsWith(CONFIG.SYSTEM_PREFIX)) { err.textContent = `IDは ${CONFIG.SYSTEM_PREFIX} から始まる必要があります`; err.style.display = 'block'; return; }
   const hash = await sha256(pw);
-  const { error } = await S.sb.from('employees').insert({ employee_id: id, password_hash: hash, name, role: '管理者', is_admin: true, active: true });
-  if (error) { err.textContent = 'エラー: ' + error.message; err.style.display = 'block'; return; }
+  const { data: res, error } = await S.sb.rpc('nurse_create_first_admin',
+    { p_id: id, p_hash: hash, p_name: name });
+  if (error || res !== 'ok') {
+    err.textContent = res === 'already' ? '管理者はすでに登録されています'
+                    : 'エラー: ' + (error?.message || '登録できませんでした');
+    err.style.display = 'block'; return;
+  }
   toast('管理者アカウントを作成しました');
   showPage('page-login');
 }
@@ -383,15 +392,16 @@ async function login() {
   err.style.display = 'none';
   if (!id || !pw) { err.textContent = 'IDとパスワードを入力してください'; err.style.display = 'block'; return; }
   const hash = await sha256(pw);
-  const { data } = await S.sb.from('employees').select('*').eq('employee_id', id).eq('password_hash', hash).eq('active', true);
-  if (!data || data.length === 0) { err.textContent = 'IDまたはパスワードが正しくありません'; err.style.display = 'block'; return; }
-  S.user = data[0];
+  const { data } = await S.sb.rpc('nurse_login', { p_id: id, p_hash: hash });
+  if (!data) { err.textContent = 'IDまたはパスワードが正しくありません'; err.style.display = 'block'; return; }
+  S.user = data;
+  S.hash = hash;   // このあとの操作で本人確認に使う。画面を閉じると消える
   if (S.user.is_admin) await showAdminView();
   else await showEmployeeView();
 }
 
 function logout() {
-  S.user = null; S.allReqs = {}; S.allNotes = {}; S.myReqs = {};
+  S.user = null; S.hash = null; S.allReqs = {}; S.allNotes = {}; S.myReqs = {};
   showPage('page-login');
 }
 
@@ -419,18 +429,18 @@ async function showEmployeeView() {
   await loadMyReqs();
   renderEmpCal();
   renderSummary();
-
-  // Load note
-  const { data: noteData } = await S.sb.from('vacation_notes').select('note')
-    .eq('employee_id', S.user.employee_id).eq('year', S.reqYear).eq('month', S.reqMonth).maybeSingle();
-  document.getElementById('emp-note').value = noteData?.note || '';
+  document.getElementById('emp-note').value = S.myNote || '';
 }
 
+// 申請とコメントをまとめて読む
 async function loadMyReqs() {
-  const { data } = await S.sb.from('vacation_requests').select('*')
-    .eq('employee_id', S.user.employee_id).eq('year', S.reqYear).eq('month', S.reqMonth);
-  S.myReqs = {};
-  if (data) data.forEach(r => { S.myReqs[r.day] = r; });
+  const { data } = await S.sb.rpc('nurse_my_month', {
+    p_id: S.user.employee_id, p_hash: S.hash, p_year: S.reqYear, p_month: S.reqMonth });
+  S.myReqs = {}; S.myNote = '';
+  if (data) {
+    (data.requests || []).forEach(r => { S.myReqs[r.day] = r; });
+    S.myNote = data.note || '';
+  }
 }
 
 function renderSummary() {
@@ -473,7 +483,9 @@ function openDayModal(day) {
   const btns = types.map(t => {
     const active = r && r.type === t ? 'active' : '';
     const cls = t === '日勤' ? 'sel-nikkin' : t === '休み' ? 'sel-yasumi' : 'sel-yukyu';
-    return `<button class="type-sel-btn ${cls} ${active}" onclick="selectType(${day}, '${t}')">${t}</button>`;
+    const onclick = deadline ? '' : `onclick="selectType(${day}, '${t}')"`;
+    const disabled = deadline ? 'disabled' : '';
+    return `<button class="type-sel-btn ${cls} ${active}" ${onclick} ${disabled}>${t}</button>`;
   }).join('');
 
   const cancelBtn = r && !deadline
@@ -496,18 +508,11 @@ function openDayModal(day) {
 
 async function selectType(day, type) {
   if (isDeadlinePassed()) { toast('締め切りを過ぎています'); return; }
-  const existing = S.myReqs[day];
-  const payload = { employee_id: S.user.employee_id, year: S.reqYear, month: S.reqMonth, day, type, status: 'pending' };
-  let error;
-  if (existing) {
-    ({ error } = await S.sb.from('vacation_requests').update({ type, status: 'pending' }).eq('id', existing.id));
-    if (!error) S.myReqs[day] = { ...existing, type, status: 'pending' };
-  } else {
-    const { data, error: e } = await S.sb.from('vacation_requests').insert(payload).select().single();
-    error = e;
-    if (!error) S.myReqs[day] = data;
-  }
-  if (error) { toast('エラーが発生しました'); return; }
+  const { data: res, error } = await S.sb.rpc('nurse_set_request', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_year: S.reqYear, p_month: S.reqMonth, p_day: day, p_type: type });
+  if (error || res !== 'ok') { toast('エラーが発生しました'); return; }
+  S.myReqs[day] = { day, type, status: 'pending' };
   renderEmpCal(); renderSummary();
   closeModal();
   toast(`${S.reqMonth}月${day}日：${type} を登録しました`);
@@ -517,8 +522,10 @@ async function cancelReq(day) {
   if (isDeadlinePassed()) { toast('締め切りを過ぎています'); closeModal(); return; }
   const r = S.myReqs[day];
   if (!r) return;
-  const { error } = await S.sb.from('vacation_requests').delete().eq('id', r.id);
-  if (error) { toast('エラーが発生しました'); return; }
+  const { data: res, error } = await S.sb.rpc('nurse_cancel_request', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_year: S.reqYear, p_month: S.reqMonth, p_day: day });
+  if (error || res !== 'ok') { toast('エラーが発生しました'); return; }
   delete S.myReqs[day];
   renderEmpCal(); renderSummary();
   closeModal();
@@ -527,15 +534,11 @@ async function cancelReq(day) {
 
 async function saveNote() {
   const note = document.getElementById('emp-note').value;
-  const { data: existing } = await S.sb.from('vacation_notes').select('id')
-    .eq('employee_id', S.user.employee_id).eq('year', S.reqYear).eq('month', S.reqMonth).maybeSingle();
-  let error;
-  if (existing) {
-    ({ error } = await S.sb.from('vacation_notes').update({ note }).eq('id', existing.id));
-  } else {
-    ({ error } = await S.sb.from('vacation_notes').insert({ employee_id: S.user.employee_id, year: S.reqYear, month: S.reqMonth, note }));
-  }
-  if (error) { toast('エラーが発生しました'); return; }
+  const { data: res, error } = await S.sb.rpc('nurse_set_note', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_year: S.reqYear, p_month: S.reqMonth, p_note: note });
+  if (error || res !== 'ok') { toast('エラーが発生しました'); return; }
+  S.myNote = note;
   toast('コメントを保存しました');
 }
 
@@ -551,11 +554,12 @@ async function showAdminView() {
 }
 
 async function loadAllReqs() {
-  const [reqRes, empRes, noteRes] = await Promise.all([
-    S.sb.from('vacation_requests').select('*').eq('year', S.adminYear).eq('month', S.adminMonth).like('employee_id', `${CONFIG.SYSTEM_PREFIX}%`),
-    S.sb.from('employees').select('*').eq('active', true).like('employee_id', `${CONFIG.SYSTEM_PREFIX}%`),
-    S.sb.from('vacation_notes').select('*').eq('year', S.adminYear).eq('month', S.adminMonth).like('employee_id', `${CONFIG.SYSTEM_PREFIX}%`)
-  ]);
+  const { data: all } = await S.sb.rpc('nurse_admin_month', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_year: S.adminYear, p_month: S.adminMonth });
+  const reqRes  = { data: all?.requests  || [] };
+  const empRes  = { data: all?.employees || [] };
+  const noteRes = { data: all?.notes     || [] };
   const empList = (empRes.data || []).filter(e => !e.is_admin);
   empList.forEach((e, i) => { e._color = COLORS[i % COLORS.length]; });
   S.employees = empList;
@@ -653,8 +657,9 @@ function openAdminDayModal(day) {
 }
 
 async function confirmReq(id) {
-  const { error } = await S.sb.from('vacation_requests').update({ status: 'approved' }).eq('id', id);
-  if (error) { toast('エラーが発生しました'); return; }
+  const { data: res, error } = await S.sb.rpc('nurse_admin_approve', {
+    p_id: S.user.employee_id, p_hash: S.hash, p_req_id: id });
+  if (error || res !== 'ok') { toast('エラーが発生しました'); return; }
   Object.values(S.allReqs).forEach(reqs => {
     const r = reqs.find(r => r.id === id);
     if (r) r.status = 'approved';
@@ -709,8 +714,13 @@ async function addEmployee() {
   if (!id || !name || pw.length < 4) { toast('すべて入力してください（PW4文字以上）'); return; }
   if (!id.startsWith(CONFIG.SYSTEM_PREFIX)) { toast(`IDは ${CONFIG.SYSTEM_PREFIX} から始まる必要があります`); return; }
   const hash = await sha256(pw);
-  const { error } = await S.sb.from('employees').insert({ employee_id: id, password_hash: hash, name, role: '訪問看護師', is_admin: false, active: true });
-  if (error) { toast('エラー: ' + (error.message.includes('duplicate') ? 'このIDは既に使われています' : error.message)); return; }
+  const { data: res, error } = await S.sb.rpc('nurse_admin_add', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_new_id: id, p_new_hash: hash, p_name: name });
+  if (error || res !== 'ok') {
+    toast(res === 'exists' ? 'このIDは既に使われています'
+        : 'エラー: ' + (error?.message || '追加できませんでした')); return;
+  }
   toast(`${name} を追加しました`);
   document.getElementById('ne-id').value = '';
   document.getElementById('ne-name').value = '';
@@ -722,7 +732,9 @@ async function addEmployee() {
 
 async function deactivateEmp(id) {
   if (!confirm('この職員を削除しますか？')) return;
-  await S.sb.from('employees').update({ active: false }).eq('employee_id', id);
+  const { data: res } = await S.sb.rpc('nurse_admin_deactivate', {
+    p_id: S.user.employee_id, p_hash: S.hash, p_target: id });
+  if (res !== 'ok') { toast(res === 'self' ? '自分は削除できません' : 'エラーが発生しました'); return; }
   toast('削除しました');
   await loadAllReqs();
   renderAdminCal();
@@ -737,11 +749,14 @@ async function changeAdminPassword() {
   if (nw !== nw2) { errEl.textContent = '新しいパスワードが一致しません'; errEl.style.display = 'block'; return; }
   if (nw.length < 4) { errEl.textContent = 'パスワードは4文字以上'; errEl.style.display = 'block'; return; }
   const curHash = await sha256(cur);
-  if (curHash !== S.user.password_hash) { errEl.textContent = '現在のパスワードが違います'; errEl.style.display = 'block'; return; }
   const newHash = await sha256(nw);
-  const { error } = await S.sb.from('employees').update({ password_hash: newHash }).eq('employee_id', S.user.employee_id);
-  if (error) { errEl.textContent = 'エラーが発生しました'; errEl.style.display = 'block'; return; }
-  S.user.password_hash = newHash;
+  const { data: res, error } = await S.sb.rpc('nurse_change_password', {
+    p_id: S.user.employee_id, p_old: curHash, p_new: newHash });
+  if (error || res !== 'ok') {
+    errEl.textContent = res === 'auth' ? '現在のパスワードが違います' : 'エラーが発生しました';
+    errEl.style.display = 'block'; return;
+  }
+  S.hash = newHash;
   toast('パスワードを変更しました');
   ['adm-pw-cur','adm-pw-new','adm-pw-new2'].forEach(id => { document.getElementById(id).value = ''; });
 }
