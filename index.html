@@ -202,9 +202,10 @@ body{font-family:-apple-system,'Hiragino Sans','Yu Gothic',sans-serif;background
     </div>
     <div class="summary-grid">
       <div class="sum-card sum-nikkin"><div class="sum-num" id="cnt-nikkin">0</div><div class="sum-lbl">日勤</div></div>
-      <div class="sum-card sum-yasumi"><div class="sum-num" id="cnt-yasumi">0</div><div class="sum-lbl">休み</div></div>
+      <div class="sum-card sum-yasumi"><div class="sum-num" id="cnt-yasumi">0</div><div class="sum-lbl">休み<span id="cnt-yasumi-max" style="opacity:.65"></span></div></div>
       <div class="sum-card sum-yukyu"><div class="sum-num" id="cnt-yukyu">0</div><div class="sum-lbl">有給</div></div>
     </div>
+    <div id="kibou-note" style="margin:0 0 12px;padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.6;background:#F3F4F6;color:#4B5563"></div>
     <div id="emp-calendar" class="cal-wrap"></div>
     <div class="card">
       <div class="card-hdr"><h2>特記事項・コメント</h2></div>
@@ -301,6 +302,9 @@ const CONFIG = {
 };
 
 const JA_DOW = ['日','月','火','水','木','金','土'];
+// 希望休（「休み」）は月2日まで。3日目以降は管理者への連絡が必要（2026-09-03 決定）。
+// 有給と日勤（出勤希望）はこの上限の対象外。
+const KIBOU_MAX = 2;
 const TYPE_COLOR = { '日勤': '#2563EB', '休み': '#6B7280', '有給': '#10B981' };
 const TYPE_CHIP  = { '日勤': 'chip-nikkin', '休み': 'chip-yasumi', '有給': 'chip-yukyu' };
 const COLORS = ['#E53E3E','#D69E2E','#38A169','#3182CE','#805AD5','#DD6B20','#319795','#E53E3E'];
@@ -446,7 +450,21 @@ async function loadMyReqs() {
 function renderSummary() {
   const reqs = Object.values(S.myReqs);
   document.getElementById('cnt-nikkin').textContent = reqs.filter(r => r.type === '日勤').length;
-  document.getElementById('cnt-yasumi').textContent = reqs.filter(r => r.type === '休み').length;
+  const nYasumi = reqs.filter(r => r.type === '休み').length;
+  const elY = document.getElementById('cnt-yasumi');
+  elY.textContent = nYasumi;
+  const elMax = document.getElementById('cnt-yasumi-max');
+  if (elMax) elMax.textContent = `（${KIBOU_MAX}日まで）`;
+  // 上限を超えていたら色で知らせる
+  elY.style.color = nYasumi > KIBOU_MAX ? '#B45309' : '';
+  const note = document.getElementById('kibou-note');
+  if (note) {
+    note.textContent = nYasumi > KIBOU_MAX
+      ? `希望休が${nYasumi}日です。${KIBOU_MAX}日を超えているので、管理者への連絡をお願いします。`
+      : `希望休（「休み」）は月${KIBOU_MAX}日までです。${KIBOU_MAX}日を超えるときは管理者へご連絡ください。有給と日勤はこの数に入りません。`;
+    note.style.background = nYasumi > KIBOU_MAX ? '#FEF3C7' : '#F3F4F6';
+    note.style.color      = nYasumi > KIBOU_MAX ? '#92400E' : '#4B5563';
+  }
   document.getElementById('cnt-yukyu').textContent  = reqs.filter(r => r.type === '有給').length;
 }
 
@@ -508,6 +526,18 @@ function openDayModal(day) {
 
 async function selectType(day, type) {
   if (isDeadlinePassed()) { toast('締め切りを過ぎています'); return; }
+  // 希望休が上限を超えるときは、管理者へ連絡したかを確かめてから登録する
+  if (type === '休み') {
+    const already = Object.values(S.myReqs)
+      .filter(r => r.type === '休み' && Number(r.day) !== Number(day)).length;
+    if (already >= KIBOU_MAX) {
+      const ok = confirm(
+        `希望休は月${KIBOU_MAX}日までです。この日を入れると${already + 1}日になります。\n\n`
+        + `${KIBOU_MAX}日を超える場合は、管理者への連絡が必要です。\n`
+        + `連絡済みであれば「OK」を押してください。`);
+      if (!ok) return;
+    }
+  }
   const { data: res, error } = await S.sb.rpc('nurse_set_request', {
     p_id: S.user.employee_id, p_hash: S.hash,
     p_year: S.reqYear, p_month: S.reqMonth, p_day: day, p_type: type });
@@ -581,7 +611,37 @@ async function loadAllReqs() {
   renderEmpTable();
 }
 
+/* 職員ごとの希望休の数。上限を超えている人が一目で分かるようにする */
+function renderKibouTally() {
+  const host = document.getElementById('admin-notes-list');
+  if (!host) return;
+  let box = document.getElementById('kibou-tally');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'kibou-tally';
+    box.style.cssText = 'margin:0 0 14px;padding:12px;border:1px solid var(--border);border-radius:8px;background:#FAFAFA';
+    host.parentNode.insertBefore(box, host);
+  }
+  const cnt = {};
+  Object.values(S.allReqs).flat().forEach(r => {
+    if (r.type !== '休み') return;
+    cnt[r.employee_id] = (cnt[r.employee_id] || 0) + 1;
+  });
+  const rows = S.employees.map(e => {
+    const n = cnt[e.employee_id] || 0;
+    const over = n > KIBOU_MAX;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+      <div class="emp-dot" style="background:${e._color}">${e.name[0]}</div>
+      <div style="flex:1">${e.name}</div>
+      <div style="font-weight:700;color:${over ? '#B45309' : '#374151'}">${n}日${over ? '　⚠ 要連絡' : ''}</div>
+    </div>`;
+  }).join('');
+  box.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:6px">
+      今月の希望休（上限 ${KIBOU_MAX}日／超えた人は本人からの連絡が必要です）</div>${rows}`;
+}
+
 function renderAdminNotes() {
+  renderKibouTally();
   const el = document.getElementById('admin-notes-list');
   const entries = Object.entries(S.allNotes).filter(([,v]) => v.note && v.note.trim());
   if (!entries.length) { el.innerHTML = '<span style="color:var(--muted)">コメントはありません</span>'; return; }
