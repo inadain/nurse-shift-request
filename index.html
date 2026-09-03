@@ -577,8 +577,6 @@ async function saveNote() {
 
 // ── Admin View ─────────────────────────────
 async function showAdminView() {
-  document.getElementById('admin-hdr-title').textContent =
-    S.user.facility ? `管理者ダッシュボード（${S.user.facility}）` : '管理者ダッシュボード（全事業所）';
   showPage('page-admin');
   document.getElementById('admin-hdr-sub').textContent = `${S.user.name}（管理者）`;
   const now = new Date();
@@ -589,9 +587,16 @@ async function showAdminView() {
 }
 
 async function loadAllReqs() {
+  // S.viewFacility は Halcyon から「この事業所を見たい」と渡されたときに入る。
+  // 担当が決まっている管理者には効かない（サーバー側で無視される）。
   const { data: all } = await S.sb.rpc('nurse_admin_month', {
     p_id: S.user.employee_id, p_hash: S.hash,
-    p_year: S.adminYear, p_month: S.adminMonth });
+    p_year: S.adminYear, p_month: S.adminMonth,
+    p_view: S.viewFacility || null });
+  // 見出しは、実際にしぼり込まれた事業所に合わせる
+  const t = document.getElementById('admin-hdr-title');
+  if (t) t.textContent = all && all.facility
+    ? `管理者ダッシュボード（${all.facility}）` : '管理者ダッシュボード（全事業所）';
   const reqRes  = { data: all?.requests  || [] };
   const empRes  = { data: all?.employees || [] };
   const noteRes = { data: all?.notes     || [] };
@@ -900,7 +905,7 @@ function printMonthlySummary() {
   </head><body>
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px">
       <div>
-        <div style="font-size:14px;font-weight:700">${S.user.facility || '全事業所'}　${y}年${m}月　シフト希望一覧</div>
+        <div style="font-size:14px;font-weight:700">${S.user.facility || S.viewFacility || '全事業所'}　${y}年${m}月　シフト希望一覧</div>
         <div style="font-size:8px;color:#666;margin-top:2px">医療法人いなだ医院　メディケアビレッジ　／　印刷日：${new Date().toLocaleDateString('ja-JP')}</div>
       </div>
       <div style="display:flex;gap:10px;font-size:8px">${legend}</div>
