@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="訪問看護申請">
-<title>訪問看護 シフト希望申請</title>
+<meta name="apple-mobile-web-app-title" content="シフト希望申請">
+<title>シフト希望申請</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -159,7 +159,7 @@ body{font-family:-apple-system,'Hiragino Sans','Yu Gothic',sans-serif;background
   <div class="white-card">
     <div class="card-logo">
       <div style="font-size:36px;margin-bottom:8px">🏥</div>
-      <h1>訪問看護 シフト希望申請</h1>
+      <h1>シフト希望申請</h1>
       <p>初回セットアップ</p>
     </div>
     <div id="setup-err" class="err-box"></div>
@@ -175,11 +175,11 @@ body{font-family:-apple-system,'Hiragino Sans','Yu Gothic',sans-serif;background
   <div class="white-card">
     <div class="card-logo">
       <div style="font-size:36px;margin-bottom:8px">🏥</div>
-      <h1>訪問看護 シフト希望申請</h1>
-      <p>メディケアビレッジ訪問看護ステーション</p>
+      <h1>シフト希望申請</h1>
+      <p>医療法人いなだ医院　メディケアビレッジ</p>
     </div>
     <div id="login-err" class="err-box"></div>
-    <div class="fg"><label>職員ID</label><input id="l-id" type="text" placeholder="例：V001" autocapitalize="none"></div>
+    <div class="fg"><label>職員ID</label><input id="l-id" type="text" placeholder="職員IDを入力" autocapitalize="none"></div>
     <div class="fg"><label>パスワード</label><input id="l-pw" type="password" placeholder="パスワード"></div>
     <button class="btn btn-primary" onclick="login()">ログイン</button>
   </div>
@@ -189,7 +189,7 @@ body{font-family:-apple-system,'Hiragino Sans','Yu Gothic',sans-serif;background
 <div id="page-employee" class="hidden">
   <div class="app-header teal-hdr">
     <div class="hdr-inner">
-      <div><div class="hdr-title">訪問看護 シフト希望申請</div><div class="hdr-sub" id="emp-hdr-sub"></div></div>
+      <div><div class="hdr-title" id="emp-hdr-title">シフト希望申請</div><div class="hdr-sub" id="emp-hdr-sub"></div></div>
       <button class="btn-logout" onclick="logout()">ログアウト</button>
     </div>
   </div>
@@ -221,7 +221,7 @@ body{font-family:-apple-system,'Hiragino Sans','Yu Gothic',sans-serif;background
 <div id="page-admin" class="hidden">
   <div class="app-header navy-hdr">
     <div class="hdr-inner">
-      <div><div class="hdr-title">管理者ダッシュボード（訪問看護）</div><div class="hdr-sub" id="admin-hdr-sub"></div></div>
+      <div><div class="hdr-title" id="admin-hdr-title">管理者ダッシュボード</div><div class="hdr-sub" id="admin-hdr-sub"></div></div>
       <button class="btn-logout" onclick="logout()">ログアウト</button>
     </div>
   </div>
@@ -261,7 +261,7 @@ body{font-family:-apple-system,'Hiragino Sans','Yu Gothic',sans-serif;background
         <div id="add-emp-form" class="add-form hidden" style="margin:0 16px 16px">
           <h3>新規職員を追加</h3>
           <div class="fg-row">
-            <div class="fg"><label>職員ID（V + 3桁）</label><input id="ne-id" type="text" placeholder="例：V001" autocapitalize="none"></div>
+            <div class="fg"><label>職員ID（V + 3桁）</label><input id="ne-id" type="text" placeholder="職員IDを入力" autocapitalize="none"></div>
             <div class="fg"><label>氏名</label><input id="ne-name" type="text" placeholder="例：兼信 真理"></div>
           </div>
           <div class="fg"><label>パスワード</label><input id="ne-pw" type="password" placeholder="4文字以上"></div>
@@ -412,6 +412,9 @@ function logout() {
 // ── Employee View ──────────────────────────
 async function showEmployeeView() {
   showPage('page-employee');
+  // 見出しは所属の事業所に合わせる（訪問看護・サ高住・デイ など）
+  document.getElementById('emp-hdr-title').textContent =
+    `${S.user.facility || ''} シフト希望申請`.trim();
   document.getElementById('emp-hdr-sub').textContent = S.user.name;
   const { year, month } = getReqMonthInfo();
   S.reqYear = year; S.reqMonth = month;
@@ -574,6 +577,8 @@ async function saveNote() {
 
 // ── Admin View ─────────────────────────────
 async function showAdminView() {
+  document.getElementById('admin-hdr-title').textContent =
+    S.user.facility ? `管理者ダッシュボード（${S.user.facility}）` : '管理者ダッシュボード（全事業所）';
   showPage('page-admin');
   document.getElementById('admin-hdr-sub').textContent = `${S.user.name}（管理者）`;
   const now = new Date();
@@ -752,7 +757,7 @@ function renderEmpTable() {
   const rows = emps.map(e => `<tr>
     <td>${e.employee_id}</td>
     <td style="font-weight:600">${e.name}</td>
-    <td><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#ECFDF5;color:#065F46">${e.role || '訪問看護師'}</span></td>
+    <td><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#ECFDF5;color:#065F46">${e.role || '職員'}</span></td>
     <td style="font-family:monospace;font-size:14px;letter-spacing:.05em;color:#134E4A;font-weight:700">${e.plain_password || '—'}</td>
     <td><button style="font-size:11px;padding:4px 10px;border:1px solid #FECACA;border-radius:6px;background:#FEF2F2;color:#EF4444;cursor:pointer" onclick="deactivateEmp('${e.employee_id}')">削除</button></td>
   </tr>`).join('');
@@ -895,8 +900,8 @@ function printMonthlySummary() {
   </head><body>
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px">
       <div>
-        <div style="font-size:14px;font-weight:700">訪問看護ステーション　${y}年${m}月　シフト希望一覧</div>
-        <div style="font-size:8px;color:#666;margin-top:2px">メディケアビレッジ訪問看護ステーション　／　印刷日：${new Date().toLocaleDateString('ja-JP')}</div>
+        <div style="font-size:14px;font-weight:700">${S.user.facility || '全事業所'}　${y}年${m}月　シフト希望一覧</div>
+        <div style="font-size:8px;color:#666;margin-top:2px">医療法人いなだ医院　メディケアビレッジ　／　印刷日：${new Date().toLocaleDateString('ja-JP')}</div>
       </div>
       <div style="display:flex;gap:10px;font-size:8px">${legend}</div>
     </div>
