@@ -214,6 +214,21 @@ body{font-family:-apple-system,'Hiragino Sans','Yu Gothic',sans-serif;background
         <button class="btn btn-outline" style="margin-top:8px" onclick="saveNote()">コメントを保存</button>
       </div>
     </div>
+
+    <div class="card">
+      <div class="card-hdr"><h2>パスワードを変える</h2></div>
+      <div class="card-body">
+        <div id="emp-pw-first" style="display:none;margin-bottom:12px;padding:10px 12px;border-radius:8px;
+             font-size:13px;line-height:1.6;background:#FEF6E7;color:#8A6100">
+          いまのパスワードは職員IDと同じです。<b>ご自分だけが分かるものに変えてください。</b>
+        </div>
+        <div class="fg"><label>いまのパスワード</label><input id="emp-pw-cur" type="password" autocomplete="current-password"></div>
+        <div class="fg"><label>新しいパスワード（4文字以上）</label><input id="emp-pw-new" type="password" autocomplete="new-password"></div>
+        <div class="fg"><label>新しいパスワード（確認）</label><input id="emp-pw-new2" type="password" autocomplete="new-password"></div>
+        <div id="emp-pw-err" style="color:#EF4444;font-size:13px;display:none;margin-bottom:10px"></div>
+        <button class="btn btn-primary" onclick="changeMyPassword()">変更する</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -412,6 +427,14 @@ function logout() {
 // ── Employee View ──────────────────────────
 async function showEmployeeView() {
   showPage('page-employee');
+  // 最初のパスワードは職員IDと同じにしてある。まだそのままの人には変更をうながす。
+  {
+    const first = document.getElementById('emp-pw-first');
+    if (first) {
+      const same = await sha256(S.user.employee_id);
+      first.style.display = (same === S.hash) ? '' : 'none';
+    }
+  }
   // 見出しは所属の事業所に合わせる（訪問看護・サ高住・デイ など）
   document.getElementById('emp-hdr-title').textContent =
     `${S.user.facility || ''} シフト希望申請`.trim();
@@ -573,6 +596,29 @@ async function saveNote() {
   if (error || res !== 'ok') { toast('エラーが発生しました'); return; }
   S.myNote = note;
   toast('コメントを保存しました');
+}
+
+async function changeMyPassword() {
+  const cur = document.getElementById('emp-pw-cur').value;
+  const nw  = document.getElementById('emp-pw-new').value;
+  const nw2 = document.getElementById('emp-pw-new2').value;
+  const errEl = document.getElementById('emp-pw-err');
+  const err = m => { errEl.textContent = m; errEl.style.display = 'block'; };
+  errEl.style.display = 'none';
+  if (!cur || !nw) return err('すべて入力してください');
+  if (nw !== nw2)  return err('新しいパスワードが一致しません');
+  if (nw.length < 4) return err('パスワードは4文字以上にしてください');
+
+  const newHash = await sha256(nw);
+  const { data: res } = await S.sb.rpc('nurse_change_password', {
+    p_id: S.user.employee_id, p_old: await sha256(cur), p_new: newHash });
+  if (res === 'auth') return err('いまのパスワードが正しくありません');
+  if (res !== 'ok')   return err('変更できませんでした');
+
+  S.hash = newHash;
+  ['emp-pw-cur','emp-pw-new','emp-pw-new2'].forEach(i => document.getElementById(i).value = '');
+  document.getElementById('emp-pw-first').style.display = 'none';
+  toast('パスワードを変更しました');
 }
 
 // ── Admin View ─────────────────────────────
