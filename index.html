@@ -1177,7 +1177,7 @@ function renderFacilityBar() {
   const list = [...new Set([...FACILITIES, ...S.employees.map(e => e.facility).filter(Boolean)])];
   const cur = S.viewFacility || '';
   sel.innerHTML = '<option value="">全事業所（承認だけ）</option>'
-    + list.map(f => `<option value="${esc(f)}"${f === cur ? ' selected' : ''}>${esc(f)}</option>`).join('');
+    + list.map(f => `<option value="${esc(f)}"${f === cur ? ' selected' : ''}>${esc(facLabel(f))}</option>`).join('');
 }
 
 async function changeFacility(f) {
