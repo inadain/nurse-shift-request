@@ -2,32 +2,1731 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>シフト希望申請 — 引っ越しました</title>
-<meta http-equiv="refresh" content="0; url=https://shift.inadaiin.com/">
-<link rel="canonical" href="https://shift.inadaiin.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="シフト希望申請">
+<title>シフト希望申請</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic','Meiryo',sans-serif;
-  background:#FAF7F4;color:#332F2C;display:flex;align-items:center;justify-content:center;
-  min-height:100vh;padding:24px;line-height:1.9}
-.box{background:#fff;border:1px solid #EAE2DC;border-radius:16px;padding:34px 30px;
-  max-width:400px;text-align:center;box-shadow:0 10px 30px -12px rgba(60,84,132,.22)}
-h1{font-size:19px;color:#3C5484;margin-bottom:12px}
-p{font-size:13.5px;color:#7A6E67;margin-bottom:18px}
-a.go{display:block;background:#D86C54;color:#fff;text-decoration:none;font-weight:700;
-  padding:13px;border-radius:11px;font-size:15px;letter-spacing:.04em}
-.url{font-family:monospace;font-size:12px;color:#3C5484;margin-top:14px;word-break:break-all}
+:root{
+  --teal:#0D9488;--teal-dark:#0F766E;--teal-soft:#CCFBF1;
+  --navy:#134E4A;--navy-dark:#0D3330;
+  --bg:#F3F6F5;--card:#fff;--text:#111827;--muted:#6B7280;--faint:#9CA3AF;
+  --border:#E5E7EB;--border-soft:#F1F3F5;
+  /* 3つの種別の色。印刷ページの色と必ず揃えること */
+  --nikkin:#2563EB;--yasumi:#6B7280;--yukyu:#10B981;
+  --ok:#047857;--ok-bg:#D1FAE5;--ok-line:#A7F3D0;
+  --ng:#B91C1C;--ng-bg:#FEE2E2;--ng-line:#FCA5A5;
+  --wait:#92400E;--wait-bg:#FEF3C7;--wait-line:#FCD34D;
+  --r:14px;--r-sm:10px;--r-xs:8px;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 4px 14px rgba(16,24,40,.06);
+  --shadow-lg:0 18px 48px rgba(16,24,40,.20);
+  --hdr-h:56px;
+  color-scheme:light
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6;
+  -webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;
+  font-feature-settings:'palt' 1
+}
+.hidden{display:none!important}
+b,strong{font-weight:700}
+:focus-visible{outline:3px solid rgba(13,148,136,.45);outline-offset:2px;border-radius:6px}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* Loading */
+#page-loading{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;color:var(--muted)}
+.spinner{width:38px;height:38px;border:4px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ログイン・初回設定 */
+.page-center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 20px;
+  background:radial-gradient(1200px 600px at 15% -10%,#14B8A6 0%,transparent 55%),linear-gradient(150deg,#0D9488 0%,#115E59 55%,#0D3330 100%)}
+.white-card{background:#fff;border-radius:20px;padding:34px 26px 30px;width:100%;max-width:400px;box-shadow:var(--shadow-lg)}
+.card-logo{text-align:center;margin-bottom:24px}
+.card-mark{width:58px;height:58px;margin:0 auto 12px;border-radius:17px;display:flex;align-items:center;justify-content:center;
+  font-size:29px;background:linear-gradient(140deg,var(--teal),var(--navy));box-shadow:0 6px 18px rgba(13,148,136,.32)}
+.card-logo h1{font-size:20px;font-weight:800;letter-spacing:.02em;margin-bottom:5px}
+.card-logo p{font-size:12.5px;color:var(--muted);line-height:1.5}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:12px;font-weight:700;color:#4B5563;margin-bottom:6px;letter-spacing:.02em}
+.fg input,.fg select,.fg textarea{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+  font-size:16px;font-family:inherit;color:var(--text);background:#fff;outline:none;-webkit-appearance:none;transition:border-color .15s,box-shadow .15s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,.15)}
+.fg textarea{resize:vertical;min-height:84px;line-height:1.7}
+.fg input:disabled,.fg textarea:disabled{background:#F3F4F6;color:#9CA3AF}
+.fg-hint{font-size:11.5px;color:var(--faint);margin-top:5px;line-height:1.5}
+
+/* ボタン */
+.btn{display:block;width:100%;min-height:46px;padding:12px 16px;border:none;border-radius:var(--r-sm);
+  font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;text-align:center;
+  transition:filter .15s,transform .08s,box-shadow .15s;-webkit-appearance:none}
+.btn:active{transform:scale(.985)}
+.btn-primary{background:linear-gradient(135deg,var(--teal),var(--teal-dark));color:#fff;box-shadow:0 2px 8px rgba(13,148,136,.28)}
+.btn-primary:hover{filter:brightness(1.05)}
+.btn-outline{background:#fff;border:1.5px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:#CBD5E1;background:#FAFAFA}
+.btn-sm{display:inline-block;width:auto;min-height:0;padding:8px 14px;font-size:13px;border-radius:var(--r-xs)}
+.btn-mini{display:inline-block;width:auto;min-height:0;padding:7px 12px;font-size:12.5px;border-radius:var(--r-xs);font-weight:700;white-space:nowrap}
+.btn-approve{background:#059669;color:#fff}
+.btn-approve:hover{filter:brightness(1.06)}
+.btn-reject{background:#fff;border:1.5px solid var(--ng-line);color:var(--ng)}
+.btn-reject:hover{background:#FFF5F5}
+.btn-danger{background:#EF4444;color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;filter:none}
+.err-box{background:#FEF2F2;border:1px solid var(--ng-line);color:#DC2626;border-radius:var(--r-xs);
+  padding:11px 14px;font-size:13px;line-height:1.6;margin-bottom:14px;display:none}
+
+/* ヘッダー */
+.app-header{color:#fff;padding:12px 18px;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.14)}
+.app-header.teal-hdr{background:linear-gradient(135deg,var(--teal),var(--teal-dark))}
+.app-header.navy-hdr{background:linear-gradient(135deg,var(--navy),var(--navy-dark))}
+.hdr-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:860px;margin:0 auto}
+.hdr-title{font-size:16px;font-weight:800;letter-spacing:.01em;line-height:1.35}
+.hdr-sub{font-size:11.5px;opacity:.85;margin-top:2px}
+.btn-logout{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.34);color:#fff;border-radius:var(--r-xs);
+  padding:8px 13px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;transition:background .15s}
+.btn-logout:hover{background:rgba(255,255,255,.26)}
+
+/* タブ */
+.tab-nav{background:#fff;border-bottom:1px solid var(--border);display:flex;position:sticky;top:var(--hdr-h);z-index:99}
+.tab-btn{flex:1;padding:12px 4px;background:none;border:none;font-size:12.5px;font-weight:700;font-family:inherit;
+  color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:color .15s,border-color .15s}
+.tab-btn:hover{color:#374151}
+.tab-btn.active{color:var(--teal);border-bottom-color:var(--teal)}
+
+/* 本体 */
+.main{max-width:860px;margin:0 auto;padding:16px 14px 40px}
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
+.card-hdr{padding:13px 16px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card-hdr h2{font-size:14.5px;font-weight:800;color:var(--navy)}
+.card-body{padding:16px}
+
+/* パネル（確定状況・希望休の集計） */
+.panel{background:#fff;border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);padding:14px 16px;margin-bottom:14px}
+.panel-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;font-weight:800;color:var(--navy);margin-bottom:10px}
+.panel-note{font-size:12px;color:var(--muted);line-height:1.6}
+.panel-empty{background:#fff;border:1px dashed var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px;
+  font-size:13px;color:var(--muted);text-align:center}
+
+/* 数の並び */
+.stat-row{display:flex;gap:8px;flex-wrap:wrap}
+.stat{flex:1 1 70px;background:var(--bg);border-radius:var(--r-xs);padding:9px 8px;text-align:center}
+.stat b{display:block;font-size:20px;line-height:1.25;font-variant-numeric:tabular-nums}
+.stat span{font-size:11px;color:var(--muted)}
+.stat.is-ok b{color:var(--ok)}
+.stat.is-ng b{color:var(--ng)}
+.stat.is-wait{background:var(--wait-bg)}
+.stat.is-wait b{color:var(--wait)}
+
+/* バッジ */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;
+  padding:3px 9px;border-radius:999px;white-space:nowrap;line-height:1.5}
+.badge-ok{background:var(--ok-bg);color:var(--ok)}
+.badge-ng{background:var(--ng-bg);color:var(--ng)}
+.badge-wait{background:var(--wait-bg);color:var(--wait)}
+.badge-lock{background:#DBEAFE;color:#1E3A8A}
+.badge-plain{background:#F1F5F9;color:#475569}
+
+/* 未処理の一覧 */
+.pend-head{font-size:12px;font-weight:700;color:var(--muted);margin:12px 0 6px}
+.pend-list{list-style:none;max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:var(--r-sm);-webkit-overflow-scrolling:touch}
+.pend-list li{display:flex;align-items:center;gap:6px 8px;padding:9px 11px;border-bottom:1px solid var(--border-soft);flex-wrap:wrap}
+.pend-list li:last-child{border-bottom:none}
+.pend-list li:nth-child(even){background:#FCFCFD}
+.pend-name{flex:1 1 auto;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pend-btns{display:flex;gap:6px;margin-left:auto}
+.panel-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
+
+/* 事業所のしぼり込み */
+.fac-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid var(--border);
+  border-radius:var(--r);box-shadow:var(--shadow);padding:10px 14px;margin-bottom:14px}
+.fac-bar label{font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}
+.fac-bar select{flex:1;min-width:140px;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r-xs);
+  font-size:14px;font-family:inherit;background:#fff;color:var(--text);outline:none}
+.fac-bar select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,.15)}
+
+/* 月の切り替え */
+.month-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:#fff;
+  border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:14px}
+.month-nav h2{font-size:19px;font-weight:800;letter-spacing:.01em;font-variant-numeric:tabular-nums}
+.month-nav-sub{font-size:11px;color:var(--muted)}
+.mnav-btn{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-xs);width:40px;height:40px;
+  font-size:20px;line-height:1;color:#374151;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.mnav-btn:hover{background:#E7EDEB}
+
+/* カレンダー */
+.cal-wrap{background:#fff;border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-hdr{padding:8px 0;text-align:center;font-size:11px;font-weight:700;color:var(--muted);background:#F8FAFA;border-bottom:1px solid var(--border)}
+.cal-hdr:first-child{color:#DC2626}
+.cal-hdr:last-child{color:#2563EB}
+.cal-cell{min-height:70px;border-right:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft);
+  padding:5px 4px;cursor:pointer;transition:background .12s;position:relative}
+.cal-cell:nth-child(7n){border-right:none}
+.cal-cell.empty{background:#FAFBFB;cursor:default}
+.cal-cell:not(.empty):hover{background:#F4FBF9}
+.cal-cell:not(.empty):active{background:#ECFDF5}
+.cal-cell.sun:not(.empty){background:#FFFAFA}
+.cal-cell.sat:not(.empty){background:#FAFBFF}
+.day-num{font-size:12px;font-weight:700;display:block;margin-bottom:3px;font-variant-numeric:tabular-nums}
+.cal-cell.sun .day-num{color:#DC2626}
+.cal-cell.sat .day-num{color:#2563EB}
+.cal-cell.today{background:#ECFDF5;box-shadow:inset 0 0 0 2px var(--teal)}
+.cal-cell.today .day-num{color:var(--teal-dark);font-weight:800}
+.cal-dots{display:flex;flex-wrap:wrap;gap:2px}
+.cal-cnt{font-size:9px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+.cal-cnt.has-pend{color:var(--wait);font-weight:700}
+.type-chip{display:block;border-radius:4px;padding:3px 4px;font-size:10px;font-weight:700;text-align:center;color:#fff;margin-bottom:2px;line-height:1.4}
+.chip-nikkin{background:var(--nikkin)}
+.chip-yasumi{background:var(--yasumi)}
+.chip-yukyu{background:var(--yukyu)}
+.chip-note{font-size:9px;font-weight:700;line-height:1.3;text-align:center}
+.chip-note.ok{color:var(--ok)}
+.chip-note.ng{color:var(--ng)}
+
+/* 凡例 */
+.legend{display:flex;flex-wrap:wrap;gap:8px 12px;padding:10px 14px;background:#fff;border:1px solid var(--border);
+  border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:14px;font-size:12px;align-items:center}
+.leg-item{display:flex;align-items:center;gap:6px}
+.leg-dot{width:13px;height:13px;border-radius:3px;flex-shrink:0}
+.emp-dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+
+/* 職員側のまとめ */
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.sum-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);
+  padding:12px 8px;text-align:center;position:relative;overflow:hidden}
+.sum-card::before{content:'';position:absolute;inset:0 0 auto 0;height:3px}
+.sum-nikkin::before{background:var(--nikkin)}
+.sum-yasumi::before{background:var(--yasumi)}
+.sum-yukyu::before{background:var(--yukyu)}
+.sum-num{font-size:25px;font-weight:800;line-height:1.2;font-variant-numeric:tabular-nums}
+.sum-lbl{font-size:11px;color:var(--muted);margin-top:2px}
+.sum-nikkin .sum-num{color:var(--nikkin)}
+.sum-yasumi .sum-num{color:var(--yasumi)}
+.sum-yukyu .sum-num{color:var(--yukyu)}
+
+/* 締め切りの帯 */
+.deadline-banner{background:var(--wait-bg);border:1px solid var(--wait-line);border-radius:var(--r-sm);
+  padding:11px 14px;font-size:13px;line-height:1.6;color:var(--wait);margin-bottom:12px;display:flex;align-items:flex-start;gap:8px}
+.deadline-ok{background:var(--ok-bg);border-color:var(--ok-line);color:#065F46}
+
+/* 知らせ */
+.note-box{margin:0 0 12px;padding:11px 13px;border-radius:var(--r-sm);font-size:13px;line-height:1.7;
+  background:#F1F5F4;color:#4B5563;border:1px solid var(--border-soft)}
+.note-box.warn{background:var(--wait-bg);color:var(--wait);border-color:var(--wait-line)}
+.state-box{padding:11px 13px;border-radius:var(--r-sm);font-size:13px;line-height:1.7;margin-bottom:12px}
+.state-ok{background:var(--ok-bg);color:#065F46}
+.state-ng{background:var(--ng-bg);color:#991B1B}
+.state-wait{background:var(--wait-bg);color:var(--wait)}
+
+/* モーダル */
+.modal-bg{position:fixed;inset:0;background:rgba(17,24,39,.5);display:flex;align-items:flex-end;justify-content:center;z-index:999;
+  padding:0;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.modal-box{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:86vh;overflow:hidden;
+  display:flex;flex-direction:column;animation:slideUp .22s ease;box-shadow:var(--shadow-lg)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-hdr{padding:18px 20px 13px;border-bottom:1px solid var(--border-soft)}
+.modal-hdr h3{font-size:17px;font-weight:800;color:var(--navy)}
+.modal-hdr p{font-size:12px;color:var(--muted);margin-top:3px}
+.modal-body{padding:16px 20px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+.modal-foot{padding:13px 20px calc(13px + env(safe-area-inset-bottom));border-top:1px solid var(--border-soft);display:flex;gap:10px;background:#fff}
+.modal-foot .btn{flex:1}
+.modal-list{list-style:none}
+.modal-list li{display:flex;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid var(--border-soft);flex-wrap:wrap}
+.modal-list li:last-child{border-bottom:none}
+@media(min-width:600px){
+  .modal-bg{align-items:center;padding:24px}
+  .modal-box{border-radius:18px;max-height:84vh}
+  .modal-foot{padding-bottom:13px}
+}
+
+/* 種別を選ぶボタン */
+.type-sel-lbl{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px}
+.type-sel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:6px}
+.type-sel-btn{padding:15px 8px;border:2px solid var(--border);border-radius:12px;background:#fff;
+  font-size:15px;font-weight:800;font-family:inherit;color:var(--text);cursor:pointer;transition:all .15s;text-align:center}
+.type-sel-btn.sel-nikkin.active{background:var(--nikkin);border-color:var(--nikkin);color:#fff}
+.type-sel-btn.sel-yasumi.active{background:var(--yasumi);border-color:var(--yasumi);color:#fff}
+.type-sel-btn.sel-yukyu.active{background:var(--yukyu);border-color:var(--yukyu);color:#fff}
+.type-sel-btn:not(.active):not(:disabled):hover{border-color:var(--teal);background:#F4FBF9}
+.type-sel-btn:disabled{opacity:.45;cursor:not-allowed;background:#F3F4F6}
+
+/* 職員一覧の表 */
+.emp-table{width:100%;border-collapse:collapse;font-size:13px}
+.emp-table th{padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);
+  background:#F8FAFA;border-bottom:1px solid var(--border);white-space:nowrap}
+.emp-table td{padding:10px;border-bottom:1px solid var(--border-soft);vertical-align:middle}
+.emp-table tr:last-child td{border-bottom:none}
+.emp-table tbody tr:hover{background:#FBFDFC}
+.emp-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:#374151;font-variant-numeric:tabular-nums}
+.emp-actions{display:flex;gap:6px;justify-content:flex-end}
+.tbl-note{padding:10px 14px;font-size:12px;line-height:1.7;color:var(--muted);background:#F8FAFA;border-bottom:1px solid var(--border)}
+@media(max-width:620px){
+  .emp-table thead{display:none}
+  .emp-table,.emp-table tbody,.emp-table tr{display:block;width:100%}
+  .emp-table tr{border-bottom:1px solid var(--border);padding:12px 14px}
+  .emp-table tr:last-child td{border-bottom:none}
+  .emp-table td{display:inline-block;border:none;padding:2px 10px 2px 0;vertical-align:middle}
+  .emp-table td:first-child{display:block;padding:0 0 7px}
+  .emp-table td:last-child{display:block;padding:9px 0 0;text-align:left!important}
+  .emp-actions{justify-content:flex-start}
+}
+@media(max-width:480px){.emp-table .col-role{display:none}}
+
+/* 追加フォーム */
+.add-form{background:#F8FAFA;border:1px solid var(--border);border-radius:var(--r-sm);padding:16px;margin-top:12px}
+.add-form h3{font-size:14px;font-weight:800;color:var(--navy);margin-bottom:12px}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:420px){.fg-row{grid-template-columns:1fr}}
+
+/* 希望休の集計 */
+.tally-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-soft);font-size:13px}
+.tally-row:last-child{border-bottom:none}
+.tally-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tally-num{font-weight:700;color:#374151;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tally-row.over .tally-num{color:var(--wait)}
+
+/* コメント一覧 */
+.note-item{border-bottom:1px solid var(--border-soft);padding:11px 0}
+.note-item:last-child{border-bottom:none}
+.note-item:first-child{padding-top:0}
+.note-name{font-weight:700;margin-bottom:4px;color:var(--navy)}
+.note-text{white-space:pre-wrap;line-height:1.8;color:#374151}
+.empty-note{color:var(--muted);font-size:13px}
+
+/* トースト */
+.toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
+  background:#111827;color:#fff;padding:12px 18px;border-radius:var(--r-sm);font-size:14px;line-height:1.6;z-index:9999;
+  animation:fadeInUp .25s ease;max-width:min(92vw,420px);text-align:center;box-shadow:var(--shadow-lg)}
+@keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+@media(min-width:640px){
+  .main{padding:20px 18px 48px}
+  .summary-grid{gap:12px}
+  .cal-cell{min-height:82px}
+}
 </style>
 </head>
 <body>
-<div class="box">
-  <h1>新しいアドレスに移りました</h1>
-  <p>そのままお待ちいただくと移動します。<br>
-     移らないときは下を押してください。</p>
-  <a class="go" href="https://shift.inadaiin.com/">シフト希望申請をひらく</a>
-  <div class="url">https://shift.inadaiin.com/</div>
+
+<!-- Loading -->
+<div id="page-loading">
+  <div class="spinner"></div>
+  <p>読み込み中...</p>
 </div>
-<script>location.replace("https://shift.inadaiin.com/");</script>
+
+<!-- Setup -->
+<div id="page-setup" class="hidden page-center">
+  <div class="white-card">
+    <div class="card-logo">
+      <div class="card-mark">🏥</div>
+      <h1>シフト希望申請</h1>
+      <p>初回セットアップ</p>
+    </div>
+    <div id="setup-err" class="err-box"></div>
+    <div class="fg"><label>管理者ID</label><input id="s-id" type="text" placeholder="例：0601" autocapitalize="none"></div>
+    <div class="fg"><label>管理者氏名</label><input id="s-name" type="text" placeholder="例：稲田崇志"></div>
+    <div class="fg"><label>パスワード（4文字以上）</label><input id="s-pw" type="password" placeholder="パスワード"></div>
+    <button class="btn btn-primary" onclick="setupAdmin()">管理者アカウントを作成</button>
+  </div>
+</div>
+
+<!-- Login -->
+<div id="page-login" class="hidden page-center">
+  <div class="white-card">
+    <div class="card-logo">
+      <div class="card-mark">🏥</div>
+      <h1>シフト希望申請</h1>
+      <p>医療法人いなだ医院　メディケアビレッジ</p>
+    </div>
+    <div id="login-err" class="err-box"></div>
+    <div class="fg"><label for="l-id">職員ID</label><input id="l-id" type="text" placeholder="4桁の番号" autocapitalize="none" autocomplete="username" inputmode="numeric"></div>
+    <div class="fg"><label for="l-pw">パスワード</label><input id="l-pw" type="password" placeholder="パスワード" autocomplete="current-password"></div>
+    <button class="btn btn-primary" onclick="login()">ログイン</button>
+    <p class="fg-hint" style="text-align:center;margin-top:14px">はじめてのパスワードはお渡ししたカードに書いてあります。<br>分からないときは管理者へご連絡ください。</p>
+  </div>
+</div>
+
+<!-- Employee Page -->
+<div id="page-employee" class="hidden">
+  <div class="app-header teal-hdr">
+    <div class="hdr-inner">
+      <div><div class="hdr-title" id="emp-hdr-title">シフト希望申請</div><div class="hdr-sub" id="emp-hdr-sub"></div></div>
+      <button class="btn-logout" onclick="logout()">ログアウト</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="month-nav">
+      <div><div class="month-nav-sub">来月の希望申請</div><h2 id="emp-month-label"></h2></div>
+    </div>
+    <div id="deadline-banner" class="deadline-banner">
+      <span>⏰</span><span id="deadline-text"></span>
+    </div>
+    <div class="summary-grid">
+      <div class="sum-card sum-nikkin"><div class="sum-num" id="cnt-nikkin">0</div><div class="sum-lbl">日勤</div></div>
+      <div class="sum-card sum-yasumi"><div class="sum-num" id="cnt-yasumi">0</div><div class="sum-lbl">休み<span id="cnt-yasumi-max" style="opacity:.65"></span></div></div>
+      <div class="sum-card sum-yukyu"><div class="sum-num" id="cnt-yukyu">0</div><div class="sum-lbl">有給</div></div>
+    </div>
+    <div id="kibou-note" class="note-box"></div>
+    <div id="emp-calendar" class="cal-wrap"></div>
+    <div class="card">
+      <div class="card-hdr"><h2>🌴 日にちはおまかせで有給を使いたいとき</h2></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:#374151;margin:0 0 10px">
+          「この月のどこかで◯日」だけを出せます。勤務表を組むときに、人の足りている日を選んで入れ、
+          配られた勤務表でお知らせします。<b>日にちが決まっているときは、上のカレンダーから出してください。</b>
+        </p>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:14px">この月のどこかで</span>
+          <input id="quota-days" type="number" min="0" max="10" step="0.5" style="width:88px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;text-align:right">
+          <span style="font-size:14px">日</span>
+          <input id="quota-note" placeholder="ご希望があれば（例：前半がうれしい）" style="flex:1;min-width:190px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px">
+          <button class="btn" id="quota-btn" onclick="saveQuota()">この希望を出す</button>
+        </div>
+        <div id="quota-state" style="margin-top:10px;font-size:13px"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr"><h2>特記事項・コメント</h2></div>
+      <div class="card-body">
+        <div class="fg" style="margin-bottom:10px"><textarea id="emp-note" placeholder="シフトに関する連絡事項があれば入力してください"></textarea></div>
+        <button class="btn btn-outline" id="emp-note-btn" onclick="saveNote()">コメントを保存</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr"><h2>パスワードを変える</h2></div>
+      <div class="card-body">
+        <div id="emp-pw-first" class="note-box warn" style="display:none">
+          いまのパスワードは職員IDと同じです。<b>ご自分だけが分かるものに変えてください。</b>
+        </div>
+        <div class="note-box" style="font-size:13px">
+          カードに書いてあるパスワードのままの方は、<b>ご自分だけが分かるものに変えてください。</b>
+        </div>
+        <div class="fg"><label>いまのパスワード</label><input id="emp-pw-cur" type="password" autocomplete="current-password"></div>
+        <div class="fg"><label>新しいパスワード（4文字以上）</label><input id="emp-pw-new" type="password" autocomplete="new-password"></div>
+        <div class="fg"><label>新しいパスワード（確認）</label><input id="emp-pw-new2" type="password" autocomplete="new-password"></div>
+        <div id="emp-pw-err" style="color:#EF4444;font-size:13px;display:none;margin-bottom:10px"></div>
+        <button class="btn btn-primary" onclick="changeMyPassword()">変更する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Page -->
+<div id="page-admin" class="hidden">
+  <div class="app-header navy-hdr">
+    <div class="hdr-inner">
+      <div><div class="hdr-title" id="admin-hdr-title">シフト希望の承認</div><div class="hdr-sub" id="admin-hdr-sub"></div></div>
+      <button class="btn-logout" onclick="logout()">ログアウト</button>
+    </div>
+  </div>
+  <div class="tab-nav">
+    <button class="tab-btn active" id="tab-cal" onclick="switchTab('cal')">📅 カレンダー</button>
+    <button class="tab-btn" id="tab-emp" onclick="switchTab('emp')">👥 職員管理</button>
+    <button class="tab-btn" id="tab-account" onclick="switchTab('account')">🔑 設定</button>
+  </div>
+  <div class="main">
+    <!-- Calendar tab -->
+    <div id="content-cal">
+      <div id="fac-bar" class="fac-bar hidden">
+        <label for="fac-select">事業所</label>
+        <select id="fac-select" onchange="changeFacility(this.value)"></select>
+      </div>
+      <div class="month-nav">
+        <button class="mnav-btn" onclick="changeMonth(-1)">‹</button>
+        <h2 id="admin-month-label"></h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="mnav-btn" onclick="changeMonth(1)">›</button>
+          <button class="btn btn-outline btn-sm" onclick="printMonthlySummary()" style="white-space:nowrap">🖨 印刷</button>
+        </div>
+      </div>
+      <div id="admin-status-panel"></div>
+      <div id="admin-kibou-tally"></div>
+      <div class="legend" id="admin-legend"></div>
+      <div id="admin-calendar" class="cal-wrap"></div>
+      <!-- 管理者が職員に代わって入れる（紙・口頭で受けたぶん） -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-hdr"><h2>✍️ 代わりに入れる</h2></div>
+        <div class="card-body">
+          <p style="font-size:13px;color:#374151;margin:0 0 10px">
+            紙や口頭で受けた希望を、管理者が代わりに入れます。<b>入れた時点で承認済み</b>になり、
+            シフト作成ソフトにもそのまま取り込まれます。確定した月にも入れられます。
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <select id="px-emp" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;min-width:150px"></select>
+            <select id="px-kind" onchange="renderProxyForm()" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px">
+              <option value="day">日にちを決めて入れる</option>
+              <option value="quota">この月のどこかで◯日</option>
+            </select>
+            <span id="px-day-wrap" style="display:flex;gap:6px;align-items:center">
+              <select id="px-day" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px"></select>
+              <select id="px-type" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px">
+                <option>休み</option><option>有給</option><option>日勤</option>
+              </select>
+            </span>
+            <span id="px-quota-wrap" style="display:none;gap:6px;align-items:center">
+              <input id="px-days" type="number" min="0" max="10" step="0.5" style="width:84px;padding:8px;border:1.5px solid var(--border);border-radius:8px;text-align:right">
+              <span>日</span>
+              <input id="px-note" placeholder="メモ（任意）" style="width:150px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px">
+            </span>
+            <button class="btn" onclick="saveProxy()">入れる</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 日にちを決めない有給の希望 -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-hdr"><h2>🌴 日にちを決めない有給の希望</h2></div>
+        <div id="quota-list" class="card-body" style="font-size:13px;color:#374151">
+          <span style="color:var(--muted)">この月はありません</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <div class="card-hdr"><h2>特記事項・コメント一覧</h2></div>
+        <div id="admin-notes-list" class="card-body" style="font-size:13px;color:#374151">
+          <span style="color:var(--muted)">コメントはありません</span>
+        </div>
+      </div>
+    </div>
+    <!-- Employee tab -->
+    <div id="content-emp" class="hidden">
+      <div class="card">
+        <div class="card-hdr">
+          <h2>職員一覧 <span id="emp-count" class="badge badge-plain"></span></h2>
+          <button class="btn btn-primary btn-sm" onclick="toggleAddForm()">＋ 追加</button>
+        </div>
+        <div id="emp-table-wrap" style="overflow-x:auto"></div>
+        <div id="add-emp-form" class="add-form hidden" style="margin:0 16px 16px">
+          <h3>新規職員を追加</h3>
+          <div class="fg-row">
+            <div class="fg"><label>職員ID（マネーフォワードの従業員番号・4桁）</label><input id="ne-id" type="text" placeholder="例：0083" autocapitalize="none" inputmode="numeric"></div>
+            <div class="fg"><label>氏名</label><input id="ne-name" type="text" placeholder="例：兼信 真理"></div>
+          </div>
+          <div class="note-box" style="font-size:13px;margin-bottom:12px">最初のパスワードは<b>追加したときに自動で作られ、画面に出ます。</b>控えて本人にお伝えください。</div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-primary" style="flex:1" onclick="addEmployee()">追加する</button>
+            <button class="btn btn-outline" style="flex:1" onclick="toggleAddForm()">キャンセル</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Account tab -->
+    <div id="content-account" class="hidden">
+      <div class="card">
+        <div class="card-hdr"><h2>管理者パスワード変更</h2></div>
+        <div class="card-body">
+          <div class="fg"><label>現在のパスワード</label><input id="adm-pw-cur" type="password"></div>
+          <div class="fg"><label>新しいパスワード</label><input id="adm-pw-new" type="password"></div>
+          <div class="fg"><label>新しいパスワード（確認）</label><input id="adm-pw-new2" type="password"></div>
+          <div id="adm-pw-err" style="color:#EF4444;font-size:13px;display:none;margin-bottom:10px"></div>
+          <button class="btn btn-primary" onclick="changeAdminPassword()">変更する</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="modal" class="hidden modal-bg" onclick="bgClose(event)">
+  <div class="modal-box" id="modal-box"></div>
+</div>
+
+<script>
+const CONFIG = {
+  SUPABASE_URL: 'https://cywfriqqwaxaiackitxu.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5d2ZyaXFxd2F4YWlhY2tpdHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MDU5NjcsImV4cCI6MjEwMjA4MTk2N30.pJlwfsfeKfuOXO0319JnPcLWgQoD6ZByKGD0wHrNIUM',
+  DEADLINE_DAY: 15,
+  SYSTEM_PREFIX: 'V'
+};
+
+const JA_DOW = ['日','月','火','水','木','金','土'];
+// 希望休（「休み」）は月2日まで。3日目以降は管理者への連絡が必要（2026-09-03 決定）。
+// 有給と日勤（出勤希望）はこの上限の対象外。
+const KIBOU_MAX = 2;
+const TYPE_COLOR = { '日勤': '#2563EB', '休み': '#6B7280', '有給': '#10B981' };
+const TYPE_CHIP  = { '日勤': 'chip-nikkin', '休み': 'chip-yasumi', '有給': 'chip-yukyu' };
+const COLORS = ['#E53E3E','#D69E2E','#38A169','#3182CE','#805AD5','#DD6B20','#319795','#E53E3E'];
+
+const S = {
+  sb: null, user: null,
+  hash: null,      // ログイン中だけメモリに置く本人確認用のハッシュ（保存はしない）
+  myNote: '',
+  employees: [], allReqs: {}, allNotes: {},
+  myReqs: {},
+  reqYear: null, reqMonth: null,
+  adminYear: null, adminMonth: null,
+  addFormOpen: false
+};
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+/* 画面に出す前に必ず通す。氏名やコメントに < > & が入っても崩れないようにする */
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/* タブがヘッダーの下にぴたりと止まるように、実際の高さを測って渡す */
+function syncHeaderHeight() {
+  const h = document.querySelector('#page-admin .app-header');
+  if (h && h.offsetHeight) {
+    document.documentElement.style.setProperty('--hdr-h', h.offsetHeight + 'px');
+  }
+}
+
+/* ログイン画面で Enter を押したら、そのまま進めるようにする */
+function bindEnterKeys() {
+  const go = (ids, fn) => ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); fn(); } });
+  });
+  go(['l-id', 'l-pw'], () => login());
+  go(['s-id', 's-name', 's-pw'], () => setupAdmin());
+  go(['ne-id', 'ne-name'], () => addEmployee());
+}
+
+function showPage(id) {
+  ['page-loading','page-setup','page-login','page-employee','page-admin'].forEach(p => {
+    document.getElementById(p).classList.toggle('hidden', p !== id);
+  });
+}
+
+function toast(msg, dur = 2000) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), dur);
+}
+
+function openModal(html) {
+  document.getElementById('modal-box').innerHTML = html;
+  document.getElementById('modal').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+function bgClose(e) { if (e.target.id === 'modal') closeModal(); }
+
+function isDeadlinePassed() {
+  return new Date().getDate() > CONFIG.DEADLINE_DAY;
+}
+
+/* 申請の対象はいつも「来月」。締め切りを過ぎた月は変更できなくなるだけで、
+   見えている月は変わらない。 */
+function getReqMonthInfo() {
+  const now = new Date();
+  const last = now.getMonth() === 11;          // 12月は翌年の1月になる
+  return { year: last ? now.getFullYear() + 1 : now.getFullYear(),
+           month: last ? 1 : now.getMonth() + 2 };
+}
+
+// ── Init ──────────────────────────────────
+window.addEventListener('load', async () => {
+  // Halcyon の入口からは /shisetsu/vac?f=デイ のように事業所が付いてくる。
+  // 担当の決まっていない管理者は、これで見る事業所がしぼられる。
+  const f = new URLSearchParams(location.search).get('f');
+  if (f && f.trim()) S.viewFacility = f.trim();
+
+  bindEnterKeys();
+  window.addEventListener('resize', syncHeaderHeight);
+
+  S.sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+  // 表を直接読まず、データベース側の関数に判定させる
+  try {
+    const { data: needSetup, error } = await S.sb.rpc('nurse_needs_setup');
+    if (error) throw error;
+    if (needSetup) { showPage('page-setup'); return; }
+  } catch (e) {
+    document.getElementById('page-loading').innerHTML =
+      '<div style="text-align:center;padding:24px;line-height:1.9">'
+      + '<div style="font-size:34px;margin-bottom:8px">📶</div>'
+      + 'サーバーにつながりませんでした。<br>電波のよいところで開き直してください。'
+      + '<div style="margin-top:16px"><button class="btn btn-outline btn-sm" '
+      + 'onclick="location.reload()">開き直す</button></div></div>';
+    return;
+  }
+  showPage('page-login');
+});
+
+// ── Setup ─────────────────────────────────
+async function setupAdmin() {
+  const id = document.getElementById('s-id').value.trim().toUpperCase();
+  const name = document.getElementById('s-name').value.trim();
+  const pw = document.getElementById('s-pw').value;
+  const err = document.getElementById('setup-err');
+  err.style.display = 'none';
+  if (!id || !name || pw.length < 4) { err.textContent = 'すべての項目を入力してください（パスワード4文字以上）'; err.style.display = 'block'; return; }
+  if (!/^([0-9]{3,5}|V[0-9A-Z]+)$/.test(id)) {
+    err.textContent = 'IDは4桁の従業員番号を入れてください（例 0601）';
+    err.style.display = 'block'; return; }
+  const hash = await sha256(pw);
+  const { data: res, error } = await S.sb.rpc('nurse_create_first_admin',
+    { p_id: id, p_hash: hash, p_name: name });
+  if (error || res !== 'ok') {
+    err.textContent = res === 'already' ? '管理者はすでに登録されています'
+                    : 'エラー: ' + (error?.message || '登録できませんでした');
+    err.style.display = 'block'; return;
+  }
+  toast('管理者アカウントを作成しました');
+  showPage('page-login');
+}
+
+// ── Login ─────────────────────────────────
+async function login() {
+  const id = document.getElementById('l-id').value.trim().toUpperCase();
+  const pw = document.getElementById('l-pw').value;
+  const err = document.getElementById('login-err');
+  err.style.display = 'none';
+  if (!id || !pw) { err.textContent = 'IDとパスワードを入力してください'; err.style.display = 'block'; return; }
+  const hash = await sha256(pw);
+  const { data } = await S.sb.rpc('nurse_login', { p_id: id, p_hash: hash });
+  if (!data) { err.textContent = 'IDまたはパスワードが正しくありません'; err.style.display = 'block'; return; }
+  S.user = data;
+  S.hash = hash;   // このあとの操作で本人確認に使う。画面を閉じると消える
+  if (S.user.is_admin) await showAdminView();
+  else await showEmployeeView();
+}
+
+function logout() {
+  S.user = null; S.hash = null; S.allReqs = {}; S.allNotes = {}; S.myReqs = {};
+  showPage('page-login');
+}
+
+// ── Employee View ──────────────────────────
+async function showEmployeeView() {
+  showPage('page-employee');
+  // 最初のパスワードは職員IDと同じにしてある。まだそのままの人には変更をうながす。
+  {
+    const first = document.getElementById('emp-pw-first');
+    if (first) {
+      const same = await sha256(S.user.employee_id);
+      first.style.display = (same === S.hash) ? '' : 'none';
+    }
+  }
+  // 見出しは所属の事業所に合わせる（訪問看護・サ高住・デイ など）
+  document.getElementById('emp-hdr-title').textContent =
+    `${facLabel(S.user.facility)} シフト希望申請`.trim();
+  document.getElementById('emp-hdr-sub').textContent = S.user.name;
+  const { year, month } = getReqMonthInfo();
+  S.reqYear = year; S.reqMonth = month;
+  document.getElementById('emp-month-label').textContent = `${year}年${month}月`;
+
+  await loadMyReqs();
+  renderDeadlineBanner();
+  renderEmpCal();
+  renderSummary();
+  document.getElementById('emp-note').value = S.myNote || '';
+  applyNoteLock();
+}
+
+/* 変更できない月は、コメント欄も触れないようにしておく。
+   押しても保存されない、という分かりにくい状態を作らないため。 */
+function applyNoteLock() {
+  const lock = empLockReason();
+  const ta = document.getElementById('emp-note');
+  const btn = document.getElementById('emp-note-btn');
+  if (!ta || !btn) return;
+  ta.disabled = !!lock;
+  btn.disabled = !!lock;
+  btn.textContent = lock ? 'この月は変更できません' : 'コメントを保存';
+}
+
+// 申請とコメントをまとめて読む
+async function loadMyReqs() {
+  const { data } = await S.sb.rpc('nurse_my_month', {
+    p_id: S.user.employee_id, p_hash: S.hash, p_year: S.reqYear, p_month: S.reqMonth });
+  S.myReqs = {}; S.myNote = ''; S.myFinalized = false;
+  S.myQuota = null;
+  if (data) {
+    (data.requests || []).forEach(r => { S.myReqs[r.day] = r; });
+    S.myNote = data.note || '';
+    S.myFinalized = !!data.finalized;
+    S.myQuota = data.quota || null;
+  }
+  renderQuota();
+}
+
+/* 日にちを決めない有給の希望（月の枠）。
+   「この月のどこかで◯日」だけを受け、日にちはシフト作成ソフトが決める（2026-09-20）。 */
+function renderQuota() {
+  const din = document.getElementById('quota-days');
+  if (!din) return;
+  const nin = document.getElementById('quota-note');
+  const q = S.myQuota;
+  din.value = q ? q.days : '';
+  nin.value = q ? (q.note || '') : '';
+  const lock = !!S.myFinalized;
+  din.disabled = nin.disabled = lock;
+  const btn = document.getElementById('quota-btn');
+  if (btn) { btn.disabled = lock; btn.textContent = lock ? 'この月は変更できません' : 'この希望を出す'; }
+  const el = document.getElementById('quota-state');
+  if (!q) {
+    el.innerHTML = lock
+      ? '<span style="color:var(--muted)">この月は確定済みです。変更は管理者へご連絡ください。</span>'
+      : '<span style="color:var(--muted)">まだ出していません。0 を入れて送ると取り消せます。</span>';
+    return;
+  }
+  const by = q.entered_by ? '（管理者が代わりに入力）' : '';
+  el.innerHTML =
+      q.status === 'approved' ? `<span style="color:#047857;font-weight:600">✅ ${q.days}日で承認されました${by}</span>`
+    : q.status === 'rejected' ? `<span style="color:#DC2626;font-weight:600">❌ 取り下げになりました</span>`
+        + (q.reject_reason ? `<div style="color:#374151;margin-top:4px">理由：${esc(q.reject_reason)}</div>` : '')
+    : `<span style="color:#B45309;font-weight:600">${q.days}日で受付中です（未処理）</span>`;
+}
+
+async function saveQuota() {
+  const days = Number(document.getElementById('quota-days').value || 0);
+  const note = document.getElementById('quota-note').value.trim();
+  if (isNaN(days) || days < 0 || days > 10) { toast('0〜10の範囲で入れてください'); return; }
+  if (days * 2 !== Math.floor(days * 2)) { toast('0.5日きざみで入れてください'); return; }
+  const { data: r } = await S.sb.rpc('nurse_set_quota', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_year: S.reqYear, p_month: S.reqMonth, p_days: days, p_note: note || null });
+  if (r === 'finalized') { toast('この月は確定済みです。管理者へご連絡ください'); return; }
+  if (r !== 'ok') { toast('入れられませんでした'); return; }
+  toast(days > 0 ? `この月のどこかで${days}日、で出しました` : '取り消しました');
+  await loadMyReqs();
+}
+
+/* 締め切りの帯。月が確定されているときは、そちらを先に伝える */
+function renderDeadlineBanner() {
+  const banner = document.getElementById('deadline-banner');
+  const txt = document.getElementById('deadline-text');
+  if (!banner || !txt) return;
+  if (S.myFinalized) {
+    txt.textContent = '管理者がこの月の勤務表を確定しました。変更するときは管理者へご連絡ください。';
+    banner.className = 'deadline-banner';
+    banner.firstElementChild.textContent = '🔒';
+    return;
+  }
+  banner.firstElementChild.textContent = '⏰';
+  const now = new Date();
+  if (isDeadlinePassed()) {
+    txt.textContent = `今月の締め切り（${CONFIG.DEADLINE_DAY}日）は過ぎています。申請は変更できません。`;
+    banner.className = 'deadline-banner';
+  } else {
+    const remaining = CONFIG.DEADLINE_DAY - now.getDate();
+    txt.textContent = `締め切りまで残り ${remaining} 日（${now.getMonth() + 1}月${CONFIG.DEADLINE_DAY}日まで）`;
+    banner.className = 'deadline-banner deadline-ok';
+  }
+}
+
+/* 変更できない理由。締切を過ぎた／管理者が月を確定した の2つ */
+function empLockReason() {
+  if (S.myFinalized) return '管理者がこの月の勤務表を確定しました。変更するときは管理者へご連絡ください。';
+  if (isDeadlinePassed()) return '締め切りを過ぎているため変更できません。';
+  return '';
+}
+
+function renderSummary() {
+  const reqs = Object.values(S.myReqs);
+  document.getElementById('cnt-nikkin').textContent = reqs.filter(r => r.type === '日勤').length;
+  const nYasumi = reqs.filter(r => r.type === '休み').length;
+  const elY = document.getElementById('cnt-yasumi');
+  elY.textContent = nYasumi;
+  const elMax = document.getElementById('cnt-yasumi-max');
+  if (elMax) elMax.textContent = `（${KIBOU_MAX}日まで）`;
+  // 上限を超えていたら色で知らせる
+  elY.style.color = nYasumi > KIBOU_MAX ? '#B45309' : '';
+  const note = document.getElementById('kibou-note');
+  if (note) {
+    note.textContent = nYasumi > KIBOU_MAX
+      ? `希望休が${nYasumi}日です。${KIBOU_MAX}日を超えているので、管理者への連絡をお願いします。`
+      : `希望休（「休み」）は月${KIBOU_MAX}日までです。${KIBOU_MAX}日を超えるときは管理者へご連絡ください。`;
+    note.className = nYasumi > KIBOU_MAX ? 'note-box warn' : 'note-box';
+  }
+  document.getElementById('cnt-yukyu').textContent  = reqs.filter(r => r.type === '有給').length;
+}
+
+function renderEmpCal() {
+  const y = S.reqYear, m = S.reqMonth;
+  const days = new Date(y, m, 0).getDate();
+  const first = new Date(y, m-1, 1).getDay();
+  const today = new Date();
+  let html = '<div class="cal-grid">';
+  JA_DOW.forEach(d => { html += `<div class="cal-hdr">${d}</div>`; });
+  for (let i=0; i<first; i++) html += '<div class="cal-cell empty"></div>';
+  for (let d=1; d<=days; d++) {
+    const dow = new Date(y, m-1, d).getDay();
+    const isToday = y===today.getFullYear() && m===today.getMonth()+1 && d===today.getDate();
+    let cls = 'cal-cell';
+    if (dow===0) cls+=' sun'; if (dow===6) cls+=' sat'; if (isToday) cls+=' today';
+    const r = S.myReqs[d];
+    let chip = '';
+    if (r) {
+      chip = `<span class="type-chip ${TYPE_CHIP[r.type]}">${r.type}</span>`;
+      if (r.status === 'rejected') {
+        chip = `<span class="type-chip ${TYPE_CHIP[r.type]}" style="opacity:.45;text-decoration:line-through">${r.type}</span>`
+             + `<div class="chip-note ng">見送り</div>`;
+      } else if (r.status === 'approved') {
+        chip += `<div class="chip-note ok">承認</div>`;
+      }
+    }
+    html += `<div class="${cls}" onclick="openDayModal(${d})">
+      <span class="day-num">${d}</span>${chip}
+    </div>`;
+  }
+  html += '</div>';
+  document.getElementById('emp-calendar').innerHTML = html;
+}
+
+function openDayModal(day) {
+  const date = new Date(S.reqYear, S.reqMonth-1, day);
+  const dow = JA_DOW[date.getDay()];
+  const r = S.myReqs[day];
+  const lock = empLockReason();
+  const locked = !!lock;
+
+  const types = ['日勤','休み','有給'];
+  const btns = types.map(t => {
+    const active = r && r.type === t ? 'active' : '';
+    const cls = t === '日勤' ? 'sel-nikkin' : t === '休み' ? 'sel-yasumi' : 'sel-yukyu';
+    const onclick = locked ? '' : `onclick="selectType(${day}, '${t}')"`;
+    const disabled = locked ? 'disabled' : '';
+    return `<button class="type-sel-btn ${cls} ${active}" ${onclick} ${disabled}>${t}</button>`;
+  }).join('');
+
+  const cancelBtn = r && !locked
+    ? `<button class="btn btn-outline" style="color:#EF4444;border-color:#EF4444" onclick="cancelReq(${day})">申請を取消</button>`
+    : '';
+
+  // いまどうなっているか
+  let stateBox = '';
+  if (r && r.status === 'rejected') {
+    stateBox = `<div class="state-box state-ng">
+      <b>この日の希望は見送りになりました。</b>
+      ${r.reject_reason ? `<div style="margin-top:6px;white-space:pre-wrap">理由：${esc(r.reject_reason)}</div>` : ''}
+      ${locked ? '' : '<div style="margin-top:6px">別の日で出し直せます。</div>'}
+    </div>`;
+  } else if (r && r.status === 'approved') {
+    stateBox = `<div class="state-box state-ok">この日の希望は<b>承認されました。</b></div>`;
+  } else if (r) {
+    stateBox = `<div class="state-box state-wait">管理者の確認待ちです。</div>`;
+  }
+
+  openModal(`
+    <div class="modal-hdr">
+      <h3>${S.reqMonth}月${day}日（${dow}）</h3>
+      <p>${r ? `現在: ${r.type}` : '未登録'}</p>
+    </div>
+    <div class="modal-body">
+      ${locked ? `<div class="state-box state-wait">🔒 ${esc(lock)}</div>` : ''}
+      ${stateBox}
+      <div class="type-sel-lbl">${locked ? '種別（変更できません）' : '種別をえらんでください'}</div>
+      <div class="type-sel-grid">${btns}</div>
+    </div>
+    <div class="modal-foot">${cancelBtn}<button class="btn btn-outline" onclick="closeModal()">閉じる</button></div>
+  `);
+}
+
+async function selectType(day, type) {
+  const lock = empLockReason();
+  if (lock) { toast(lock); return; }
+  // 希望休が上限を超えるときは、管理者へ連絡したかを確かめてから登録する
+  if (type === '休み') {
+    const already = Object.values(S.myReqs)
+      .filter(r => r.type === '休み' && Number(r.day) !== Number(day)).length;
+    if (already >= KIBOU_MAX) {
+      const ok = confirm(
+        `希望休は月${KIBOU_MAX}日までです。この日を入れると${already + 1}日になります。\n\n`
+        + `${KIBOU_MAX}日を超える場合は、管理者への連絡が必要です。\n`
+        + `連絡済みであれば「OK」を押してください。`);
+      if (!ok) return;
+    }
+  }
+  const { data: res, error } = await S.sb.rpc('nurse_set_request', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_year: S.reqYear, p_month: S.reqMonth, p_day: day, p_type: type });
+  if (res === 'finalized') { toast('この月は確定済みです。管理者へご連絡ください'); await loadMyReqs(); renderEmpCal(); renderSummary(); renderDeadlineBanner(); applyNoteLock(); closeModal(); return; }
+  if (error || res !== 'ok') { toast('エラーが発生しました'); return; }
+  S.myReqs[day] = { day, type, status: 'pending', reject_reason: null };
+  renderEmpCal(); renderSummary();
+  closeModal();
+  toast(`${S.reqMonth}月${day}日：${type} を登録しました`);
+}
+
+async function cancelReq(day) {
+  const lock = empLockReason();
+  if (lock) { toast(lock); closeModal(); return; }
+  const r = S.myReqs[day];
+  if (!r) return;
+  const { data: res, error } = await S.sb.rpc('nurse_cancel_request', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_year: S.reqYear, p_month: S.reqMonth, p_day: day });
+  if (res === 'finalized') { toast('この月は確定済みです。管理者へご連絡ください'); await loadMyReqs(); renderEmpCal(); renderSummary(); renderDeadlineBanner(); applyNoteLock(); closeModal(); return; }
+  if (error || res !== 'ok') { toast('エラーが発生しました'); return; }
+  delete S.myReqs[day];
+  renderEmpCal(); renderSummary();
+  closeModal();
+  toast(`${S.reqMonth}月${day}日の申請を取消しました`);
+}
+
+async function saveNote() {
+  const note = document.getElementById('emp-note').value;
+  const { data: res, error } = await S.sb.rpc('nurse_set_note', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_year: S.reqYear, p_month: S.reqMonth, p_note: note });
+  if (error || res !== 'ok') { toast('エラーが発生しました'); return; }
+  S.myNote = note;
+  toast('コメントを保存しました');
+}
+
+async function changeMyPassword() {
+  const cur = document.getElementById('emp-pw-cur').value;
+  const nw  = document.getElementById('emp-pw-new').value;
+  const nw2 = document.getElementById('emp-pw-new2').value;
+  const errEl = document.getElementById('emp-pw-err');
+  const err = m => { errEl.textContent = m; errEl.style.display = 'block'; };
+  errEl.style.display = 'none';
+  if (!cur || !nw) return err('すべて入力してください');
+  if (nw !== nw2)  return err('新しいパスワードが一致しません');
+  if (nw.length < 4) return err('パスワードは4文字以上にしてください');
+
+  const newHash = await sha256(nw);
+  const { data: res } = await S.sb.rpc('nurse_change_password', {
+    p_id: S.user.employee_id, p_old: await sha256(cur), p_new: newHash });
+  if (res === 'auth') return err('いまのパスワードが正しくありません');
+  if (res !== 'ok')   return err('変更できませんでした');
+
+  S.hash = newHash;
+  ['emp-pw-cur','emp-pw-new','emp-pw-new2'].forEach(i => document.getElementById(i).value = '');
+  document.getElementById('emp-pw-first').style.display = 'none';
+  toast('パスワードを変更しました');
+}
+
+// ── Admin View ─────────────────────────────
+async function showAdminView() {
+  showPage('page-admin');
+  syncHeaderHeight();
+  document.getElementById('admin-hdr-sub').textContent = `${S.user.name}（管理者）`;
+  const now = new Date();
+  S.adminYear = now.getMonth() === 11 ? now.getFullYear()+1 : now.getFullYear();
+  S.adminMonth = now.getMonth() === 11 ? 1 : now.getMonth()+2;
+  await loadAllReqs();
+  renderAdminCal();
+}
+
+async function loadAllReqs() {
+  // S.viewFacility は Halcyon から「この事業所を見たい」と渡されたときに入る。
+  // 担当が決まっている管理者には効かない（サーバー側で無視される）。
+  const { data: all, error } = await S.sb.rpc('nurse_admin_month', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_year: S.adminYear, p_month: S.adminMonth,
+    p_view: S.viewFacility || null });
+  if (error || !all) {
+    toast('読み込めませんでした。電波のよいところで開き直してください', 4000);
+    return;
+  }
+  // 見出しは、実際にしぼり込まれた事業所に合わせる
+  const t = document.getElementById('admin-hdr-title');
+  if (t) t.textContent = all.facility
+    ? `シフト希望の承認（${facLabel(all.facility)}）` : 'シフト希望の承認（全事業所）';
+  S.facility  = all?.facility ?? null;
+  S.finalized = all?.finalized ?? null;
+  S.fixed     = all?.fixed === true;   // 担当の事業所が決まっている管理者かどうか
+  const reqRes  = { data: all?.requests  || [] };
+  const empRes  = { data: all?.employees || [] };
+  const noteRes = { data: all?.notes     || [] };
+  const empList = (empRes.data || []).filter(e => !e.is_admin);
+  empList.forEach((e, i) => { e._color = COLORS[i % COLORS.length]; });
+  S.employees = empList;
+  renderFacilityBar();   // 事業所の一覧は、届いた名簿から作るので名簿を入れたあとに
+  const empMap = {};
+  empList.forEach(e => { empMap[e.employee_id] = e; });
+
+  S.allReqs = {};
+  (reqRes.data || []).forEach(r => {
+    if (!S.allReqs[r.day]) S.allReqs[r.day] = [];
+    const emp = empMap[r.employee_id];
+    S.allReqs[r.day].push({ ...r, name: emp?.name || r.employee_id, color: emp?._color || '#888' });
+  });
+  S.allNotes = {};
+  (noteRes.data || []).forEach(n => {
+    const emp = S.employees.find(e => e.employee_id === n.employee_id);
+    S.allNotes[n.employee_id] = { note: n.note, name: emp?.name || n.employee_id };
+  });
+  S.quotas = all?.quotas || [];
+  renderAdminNotes();
+  renderStatusPanel();
+  renderEmpTable();
+  renderQuotaList();
+  renderProxyForm();
+}
+
+/* 管理者が職員に代わって入れる（2026-09-20）。
+   紙や口頭で受けた希望を、その場で承認済みとして入れる。誰が入れたかは entered_by に残る。 */
+function renderProxyForm() {
+  const sel = document.getElementById('px-emp');
+  if (!sel) return;
+  const keep = sel.value;
+  sel.innerHTML = (S.employees || [])
+    .map(e => `<option value="${esc(e.employee_id)}">${esc(e.name)}</option>`).join('');
+  if (keep) sel.value = keep;
+
+  const days = new Date(S.adminYear, S.adminMonth, 0).getDate();
+  const dsel = document.getElementById('px-day');
+  const keepD = dsel.value;
+  dsel.innerHTML = Array.from({length: days}, (_, i) =>
+    `<option value="${i+1}">${S.adminMonth}/${i+1}（${JA_DOW[new Date(S.adminYear, S.adminMonth-1, i+1).getDay()]}）</option>`).join('');
+  if (keepD && Number(keepD) <= days) dsel.value = keepD;
+
+  const kind = document.getElementById('px-kind').value;
+  document.getElementById('px-day-wrap').style.display   = kind === 'day'   ? 'flex' : 'none';
+  document.getElementById('px-quota-wrap').style.display = kind === 'quota' ? 'flex' : 'none';
+}
+
+async function saveProxy() {
+  const target = document.getElementById('px-emp').value;
+  if (!target) { toast('職員を選んでください'); return; }
+  const name = (S.employees.find(e => e.employee_id === target) || {}).name || target;
+
+  if (document.getElementById('px-kind').value === 'quota') {
+    const d = Number(document.getElementById('px-days').value || 0);
+    const note = document.getElementById('px-note').value.trim();
+    if (isNaN(d) || d < 0 || d > 10 || d * 2 !== Math.floor(d * 2)) {
+      toast('0〜10の範囲・0.5日きざみで入れてください'); return; }
+    const { data: r } = await S.sb.rpc('nurse_admin_set_quota', {
+      p_id: S.user.employee_id, p_hash: S.hash, p_target: target,
+      p_year: S.adminYear, p_month: S.adminMonth, p_days: d, p_note: note || null });
+    if (r !== 'ok') { toast('入れられませんでした（' + r + '）'); return; }
+    toast(d > 0 ? `${name}さん：この月のどこかで${d}日 で入れました` : `${name}さんの枠を取り消しました`);
+    document.getElementById('px-note').value = '';
+  } else {
+    const day = Number(document.getElementById('px-day').value);
+    const type = document.getElementById('px-type').value;
+    const { data: r } = await S.sb.rpc('nurse_admin_set_request', {
+      p_id: S.user.employee_id, p_hash: S.hash, p_target: target,
+      p_year: S.adminYear, p_month: S.adminMonth, p_day: day, p_type: type });
+    if (r !== 'ok') { toast('入れられませんでした（' + r + '）'); return; }
+    toast(`${name}さん ${S.adminMonth}/${day} ${type} を入れました（承認済み）`);
+  }
+  await loadAllReqs();
+  renderAdminCal();
+}
+
+/* 日にちを決めない有給の希望の一覧。承認・却下はここから */
+function renderQuotaList() {
+  const el = document.getElementById('quota-list');
+  if (!el) return;
+  const list = (S.quotas || []).slice().sort((a,b) => (a.status === 'pending' ? -1 : 1));
+  if (!list.length) {
+    el.innerHTML = '<span style="color:var(--muted)">この月はありません</span>'; return; }
+  const nameOfId = id => ((S.employees || []).find(e => e.employee_id === id) || {}).name || id;
+  el.innerHTML = `<p style="margin:0 0 8px;color:var(--muted)">
+      承認したぶんは、勤務表を組むときにシフト作成ソフトが日にちを決めて入れます。</p>`
+    + list.map(q => {
+    const st = q.status === 'approved' ? '<span style="color:#047857;font-weight:600">承認済み</span>'
+             : q.status === 'rejected' ? '<span style="color:#DC2626;font-weight:600">却下</span>'
+             : '<span style="color:#B45309;font-weight:600">未処理</span>';
+    const by = q.entered_by ? '<span style="color:var(--muted)">（代理入力）</span>' : '';
+    return `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--border)">
+      <b style="min-width:100px">${esc(nameOfId(q.employee_id))}</b>
+      <span>この月のどこかで <b style="font-size:15px">${q.days}</b> 日</span>
+      ${q.note ? `<span style="color:#374151">「${esc(q.note)}」</span>` : ''}
+      ${st} ${by}
+      <span style="margin-left:auto;display:flex;gap:6px">
+        <button class="btn-mini ok" onclick="decideQuota('${esc(q.id)}','approved')">承認</button>
+        <button class="btn-mini ng" onclick="decideQuota('${esc(q.id)}','rejected')">却下</button>
+      </span>
+    </div>`;
+  }).join('');
+}
+
+async function decideQuota(id, status) {
+  let reason = null;
+  if (status === 'rejected') {
+    reason = prompt('取り下げの理由（そのまま本人の画面に出ます。空欄でも構いません）') || '';
+  }
+  const { data: r } = await S.sb.rpc('nurse_admin_decide_quota', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_quota_id: id, p_status: status, p_reason: reason });
+  if (r !== 'ok') { toast('変えられませんでした（' + r + '）'); return; }
+  await loadAllReqs();
+  toast(status === 'approved' ? '承認しました' : '却下しました');
+}
+
+/* 050 が受け持つ事業所。ここに無いものは、届いた名簿から足す */
+const FACILITIES = ['訪問看護','サ高住','小多機','デイ','訪問介護','居宅','施設事務'];
+/* 画面に出す事業所の名前（2026-11-01）。
+   中身の値（employees.facility）は変えずに、見せ方だけ変える。
+   「居宅」のグループには、居宅のケアマネ2名に加えて
+   施設事務の事務主任（前原さん）が入っている。本人のシフトを居宅の管理者が組むため。
+   見出しが「居宅」だけだと本人が戸惑うので「居宅＋施設事務」と出す。
+   厨房の6名は「施設事務」のままで、事務主任がそちらを見る。 */
+const FAC_LABEL = { '居宅': '居宅＋施設事務' };
+const facLabel = f => FAC_LABEL[f] || f || '';
+
+/* 担当の決まっていない管理者だけ、見る事業所をえらべるようにする。
+   しぼらないと「すべて承認」「月の確定」「職員の追加」ができない。 */
+function renderFacilityBar() {
+  const bar = document.getElementById('fac-bar');
+  const sel = document.getElementById('fac-select');
+  if (!bar || !sel) return;
+  if (S.fixed) { bar.classList.add('hidden'); return; }   // 担当が決まっている人には出さない
+  bar.classList.remove('hidden');
+  const list = [...new Set([...FACILITIES, ...S.employees.map(e => e.facility).filter(Boolean)])];
+  const cur = S.viewFacility || '';
+  sel.innerHTML = '<option value="">全事業所（承認だけ）</option>'
+    + list.map(f => `<option value="${esc(f)}"${f === cur ? ' selected' : ''}>${esc(f)}</option>`).join('');
+}
+
+async function changeFacility(f) {
+  S.viewFacility = f || null;
+  document.getElementById('admin-calendar').innerHTML =
+    '<div style="text-align:center;padding:40px;color:var(--muted)"><div class="spinner" style="margin:0 auto 12px"></div>読み込み中...</div>';
+  await loadAllReqs();
+  renderAdminCal();
+}
+
+/* ---------- 承認まわり ---------- */
+
+/* その月の申請を1本の配列にする（日付順） */
+function allReqList() {
+  return Object.entries(S.allReqs)
+    .flatMap(([day, rs]) => rs.map(r => ({ ...r, day: Number(day) })))
+    .sort((a, b) => a.day - b.day || a.name.localeCompare(b.name, 'ja'));
+}
+
+function isPending(r) { return !r.status || r.status === 'pending'; }
+
+/* ◯月の確定状況 */
+function renderStatusPanel() {
+  const box = document.getElementById('admin-status-panel');
+  if (!box) return;
+  const list = allReqList();
+  const ap = list.filter(r => r.status === 'approved').length;
+  const rj = list.filter(r => r.status === 'rejected').length;
+  const pd = list.filter(isPending);
+
+  if (!list.length) {
+    box.innerHTML = `<div class="panel-empty">${S.adminMonth}月の申請はまだありません。</div>`;
+    return;
+  }
+
+  const noFacility = S.facility == null;
+  const fin = S.finalized === true;
+
+  const pendList = pd.length
+    ? `<div class="pend-head">未処理の${pd.length}件</div>
+       <ul class="pend-list">
+       ${pd.map(r => `<li>
+           <div class="emp-dot" style="background:${esc(r.color)}">${esc(r.name[0])}</div>
+           <div class="pend-name"><b>${r.day}日</b>　${esc(r.name)}</div>
+           <span class="type-chip ${TYPE_CHIP[r.type] || 'chip-yasumi'}" style="display:inline-block">${esc(r.type)}</span>
+           <div class="pend-btns">
+             <button class="btn btn-mini btn-approve" onclick="decideReq('${esc(r.id)}','approved')">承認</button>
+             <button class="btn btn-mini btn-reject" onclick="rejectReq('${esc(r.id)}')">却下</button>
+           </div>
+         </li>`).join('')}
+       </ul>` : '';
+
+  const allBtn = pd.length && !noFacility
+    ? `<button class="btn btn-mini btn-approve" onclick="approveAll()">すべて承認（${pd.length}件）</button>` : '';
+
+  let finBtn = '';
+  if (noFacility) {
+    finBtn = `<span class="panel-note">月の確定は、上で事業所をえらんでから行えます</span>`;
+  } else if (fin) {
+    finBtn = `<button class="btn btn-mini btn-outline" onclick="setFinalized(false)">確定を解除する</button>`;
+  } else {
+    finBtn = `<button class="btn btn-mini" style="background:#1E3A5F;color:#fff" onclick="setFinalized(true)">この月を確定する</button>`;
+  }
+
+  box.innerHTML = `<div class="panel">
+    <div class="panel-title">
+      <span>${S.adminMonth}月の確定状況</span>
+      ${fin ? '<span class="badge badge-lock">🔒 確定済み</span>' : ''}
+      ${pd.length ? `<span class="badge badge-wait">未処理 ${pd.length}件</span>`
+                  : '<span class="badge badge-ok">すべて処理済み</span>'}
+    </div>
+    <div class="stat-row">
+      <div class="stat"><b>${list.length}</b><span>申請</span></div>
+      <div class="stat is-ok"><b>${ap}</b><span>承認</span></div>
+      <div class="stat is-ng"><b>${rj}</b><span>却下</span></div>
+      <div class="stat${pd.length ? ' is-wait' : ''}"><b>${pd.length}</b><span>未処理</span></div>
+    </div>
+    ${fin ? '<div class="panel-note" style="margin-top:10px">確定しているあいだ、職員はこの月の希望を変えられません。</div>' : ''}
+    ${pendList}
+    <div class="panel-actions">${allBtn}${finBtn}</div>
+  </div>`;
+}
+
+/* 1件を承認・却下・未処理に戻す */
+async function decideReq(id, status, reason) {
+  const { data: res, error } = await S.sb.rpc('nurse_admin_decide', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_req_id: id, p_status: status, p_reason: reason || null });
+  if (error || res !== 'ok') {
+    toast(res === 'forbidden' ? 'ほかの事業所の申請は決められません' : 'エラーが発生しました');
+    return false;
+  }
+  Object.values(S.allReqs).forEach(rs => {
+    const r = rs.find(r => r.id === id);
+    if (r) { r.status = status; r.reject_reason = status === 'rejected' ? (reason || null) : null; }
+  });
+  renderAdminCal(); renderStatusPanel();
+  toast(status === 'approved' ? '承認しました' : status === 'rejected' ? '却下しました' : '未処理に戻しました');
+  return true;
+}
+
+/* 却下（理由を聞く。書かなくてもよい） */
+async function rejectReq(id) {
+  const reason = prompt('却下の理由（書かなくても構いません）\n職員の画面にそのまま出ます。', '');
+  if (reason === null) return;   // 取り消し
+  const ok = await decideReq(id, 'rejected', reason);
+  if (ok) closeModal();
+}
+
+/* まとめて承認 */
+async function approveAll() {
+  const n = allReqList().filter(isPending).length;
+  if (!n) return;
+  if (!confirm(`未処理の${n}件をまとめて承認します。よろしいですか。`)) return;
+  const { data: res, error } = await S.sb.rpc('nurse_admin_approve_all', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_year: S.adminYear, p_month: S.adminMonth, p_view: S.viewFacility || null });
+  if (error || res?.result !== 'ok') {
+    toast(res?.result === 'nofacility' ? '事業所をしぼってから行ってください' : 'エラーが発生しました');
+    return;
+  }
+  await loadAllReqs();
+  renderAdminCal();
+  toast(`${res.count}件を承認しました`);
+}
+
+/* 月の確定・解除 */
+async function setFinalized(on) {
+  if (on) {
+    const pd = allReqList().filter(isPending).length;
+    if (pd) { toast(`未処理が${pd}件あります。先に承認か却下をしてください`); return; }
+    if (!confirm(`${S.adminMonth}月を確定します。\n\n確定すると、職員はこの月の希望を変えられなくなります。\nあとから解除もできます。`)) return;
+  }
+  const { data: res, error } = await S.sb.rpc('nurse_admin_set_finalized', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_year: S.adminYear, p_month: S.adminMonth, p_on: on,
+    p_view: S.viewFacility || null });
+  if (error || res !== 'ok') {
+    toast(res === 'pending' ? '未処理が残っています'
+        : res === 'nofacility' ? '事業所をしぼってから行ってください'
+        : 'エラーが発生しました');
+    return;
+  }
+  S.finalized = on;
+  renderStatusPanel();
+  toast(on ? `${S.adminMonth}月を確定しました` : '確定を解除しました');
+}
+
+/* 職員ごとの希望休の数。上限を超えている人が一目で分かるようにする。
+   「特記事項・コメント一覧」とは別のカードに出す。 */
+function renderKibouTally() {
+  const box = document.getElementById('admin-kibou-tally');
+  if (!box) return;
+  if (!S.employees.length) { box.innerHTML = ''; return; }
+
+  const cnt = {};
+  Object.values(S.allReqs).flat().forEach(r => {
+    if (r.type !== '休み') return;
+    cnt[r.employee_id] = (cnt[r.employee_id] || 0) + 1;
+  });
+  const over = S.employees.filter(e => (cnt[e.employee_id] || 0) > KIBOU_MAX).length;
+
+  const rows = S.employees.map(e => {
+    const n = cnt[e.employee_id] || 0;
+    const isOver = n > KIBOU_MAX;
+    return `<div class="tally-row${isOver ? ' over' : ''}">
+      <div class="emp-dot" style="background:${esc(e._color)}">${esc(e.name[0])}</div>
+      <div class="tally-name">${esc(e.name)}</div>
+      <div class="tally-num">${n}日${isOver ? '　⚠ 要連絡' : ''}</div>
+    </div>`;
+  }).join('');
+
+  box.innerHTML = `<div class="panel">
+    <div class="panel-title">
+      <span>${S.adminMonth}月の希望休</span>
+      ${over ? `<span class="badge badge-wait">上限超え ${over}名</span>`
+             : '<span class="badge badge-ok">上限内</span>'}
+    </div>
+    <div class="panel-note" style="margin-bottom:6px">上限 ${KIBOU_MAX}日。超えた人は本人からの連絡が必要です。</div>
+    ${rows}
+  </div>`;
+}
+
+function renderAdminNotes() {
+  renderKibouTally();
+  const el = document.getElementById('admin-notes-list');
+  const entries = Object.entries(S.allNotes).filter(([, v]) => v.note && v.note.trim());
+  if (!entries.length) { el.innerHTML = '<span class="empty-note">コメントはありません</span>'; return; }
+  el.innerHTML = entries.map(([, v]) => `
+    <div class="note-item">
+      <div class="note-name">${esc(v.name)}</div>
+      <div class="note-text">${esc(v.note)}</div>
+    </div>`).join('');
+}
+
+function renderAdminCal() {
+  document.getElementById('admin-month-label').textContent = `${S.adminYear}年${S.adminMonth}月`;
+  document.getElementById('admin-legend').innerHTML =
+    S.employees.map(e => `<div class="leg-item"><div class="emp-dot" style="background:${esc(e._color)}">${esc(e.name[0])}</div>${esc(e.name)}</div>`).join('') +
+    `<div class="leg-item" style="margin-left:auto">
+      <div class="leg-dot" style="background:var(--nikkin)"></div>日勤
+      <div class="leg-dot" style="background:var(--yasumi);margin-left:6px"></div>休み
+      <div class="leg-dot" style="background:var(--yukyu);margin-left:6px"></div>有給
+    </div>`;
+
+  const y = S.adminYear, m = S.adminMonth;
+  const days = new Date(y, m, 0).getDate();
+  const first = new Date(y, m-1, 1).getDay();
+  const today = new Date();
+  let html = '<div class="cal-grid">';
+  JA_DOW.forEach(d => { html += `<div class="cal-hdr">${d}</div>`; });
+  for (let i=0; i<first; i++) html += '<div class="cal-cell empty"></div>';
+  for (let d=1; d<=days; d++) {
+    const dow = new Date(y, m-1, d).getDay();
+    const isToday = y===today.getFullYear() && m===today.getMonth()+1 && d===today.getDate();
+    let cls = 'cal-cell';
+    if (dow===0) cls+=' sun'; if (dow===6) cls+=' sat'; if (isToday) cls+=' today';
+    const reqs = S.allReqs[d] || [];
+    const dots = reqs.map(r => {
+      const bdr = r.type==='日勤'?`outline:2px solid var(--nikkin)`:r.type==='休み'?`outline:2px solid var(--yasumi)`:`outline:2px solid var(--yukyu)`;
+      // 却下は薄く、未処理は点を付けて「まだ決めていない」と分かるようにする
+      const st = r.status === 'rejected' ? ';opacity:.35'
+               : (!r.status || r.status === 'pending') ? ';box-shadow:0 0 0 2px #FDE68A' : '';
+      const stName = r.status === 'rejected' ? '却下' : r.status === 'approved' ? '承認済' : '未処理';
+      return `<div class="emp-dot" style="background:${esc(r.color)};${bdr}${st};width:20px;height:20px;font-size:9px" title="${esc(r.name)}：${esc(r.type)}（${stName}）">${esc(r.name[0])}</div>`;
+    }).join('');
+    const nPend = reqs.filter(r => !r.status || r.status === 'pending').length;
+    const cnt = reqs.length > 0
+      ? `<div class="cal-cnt${nPend ? ' has-pend' : ''}">${reqs.length}件${nPend ? `（未${nPend}）` : ''}</div>` : '';
+    html += `<div class="${cls}" onclick="openAdminDayModal(${d})">
+      <span class="day-num">${d}</span>
+      ${dots ? `<div class="cal-dots">${dots}</div>` : ''}
+      ${cnt}
+    </div>`;
+  }
+  html += '</div>';
+  document.getElementById('admin-calendar').innerHTML = html;
+}
+
+function openAdminDayModal(day) {
+  const reqs = S.allReqs[day] || [];
+  const date = new Date(S.adminYear, S.adminMonth-1, day);
+  if (reqs.length === 0) { toast('この日の申請はありません'); return; }
+  const list = reqs.map(r => {
+    const cc = TYPE_CHIP[r.type] || 'chip-yasumi';
+    const stBadge = r.status === 'approved'
+      ? '<span class="badge badge-ok">✅ 承認済</span>'
+      : r.status === 'rejected'
+      ? '<span class="badge badge-ng">✕ 却下</span>'
+      : '<span class="badge badge-wait">⏳ 未処理</span>';
+    let btns = '';
+    if (r.status === 'approved' || r.status === 'rejected') {
+      btns = `<button class="btn btn-mini btn-outline" onclick="decideReq('${esc(r.id)}','pending')">未処理に戻す</button>`;
+    } else {
+      btns = `<button class="btn btn-mini btn-approve" onclick="decideReq('${esc(r.id)}','approved')">承認する</button>
+              <button class="btn btn-mini btn-reject" onclick="rejectReq('${esc(r.id)}')">却下する</button>`;
+    }
+    const reason = r.status === 'rejected' && r.reject_reason
+      ? `<div style="flex-basis:100%;font-size:12px;color:#991B1B;white-space:pre-wrap;padding-left:32px">理由：${esc(r.reject_reason)}</div>` : '';
+    return `<li>
+      <div class="emp-dot" style="background:${esc(r.color)}">${esc(r.name[0])}</div>
+      <div style="flex:1;min-width:90px;font-weight:700">${esc(r.name)}</div>
+      <span class="type-chip ${cc}" style="display:inline-block">${esc(r.type)}</span>
+      ${stBadge}
+      ${btns}
+      ${reason}
+    </li>`;
+  }).join('');
+  openModal(`
+    <div class="modal-hdr"><h3>${S.adminMonth}月${day}日（${JA_DOW[date.getDay()]}）</h3><p>申請 ${reqs.length}件</p></div>
+    <div class="modal-body"><ul class="modal-list">${list}</ul></div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">閉じる</button></div>
+  `);
+}
+
+/* 前からある名前。押した先は decideReq と同じ */
+async function confirmReq(id) { await decideReq(id, 'approved'); }
+
+async function changeMonth(delta) {
+  S.adminMonth += delta;
+  if (S.adminMonth > 12) { S.adminYear++; S.adminMonth = 1; }
+  if (S.adminMonth < 1) { S.adminYear--; S.adminMonth = 12; }
+  document.getElementById('admin-calendar').innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)"><div class="spinner" style="margin:0 auto 12px"></div>読み込み中...</div>';
+  await loadAllReqs();
+  renderAdminCal();
+}
+
+function switchTab(tab) {
+  ['cal','emp','account'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+    document.getElementById(`content-${t}`).classList.toggle('hidden', t !== tab);
+  });
+}
+
+// Employee management
+function renderEmpTable() {
+  const emps = S.employees;
+  const badge = document.getElementById('emp-count');
+  if (badge) badge.textContent = `${emps.length}名`;
+  if (!emps.length) { document.getElementById('emp-table-wrap').innerHTML = '<p style="padding:16px;color:var(--muted)">職員がいません</p>'; return; }
+  // 事業所をしぼっているときは、どの行も同じ事業所なので列を出さない
+  const showFac = S.facility == null;
+  const rows = emps.map(e => `<tr>
+    <td style="font-weight:700;white-space:nowrap">${esc(e.name)}</td>
+    <td class="emp-id">${esc(e.employee_id)}</td>
+    ${showFac ? `<td><span class="badge badge-plain">${esc(e.facility || '—')}</span></td>` : ''}
+    <td class="col-role"><span class="badge" style="background:#ECFDF5;color:#065F46">${esc(e.role || '職員')}</span></td>
+    <td style="text-align:right"><div class="emp-actions">
+      <button class="btn btn-mini" style="background:#FEF3C7;color:#92400E;border:1.5px solid #FDE68A" onclick="resetEmpPw('${esc(e.employee_id)}')">PW初期化</button>
+      <button class="btn btn-mini btn-reject" onclick="deactivateEmp('${esc(e.employee_id)}')">削除</button>
+    </div></td>
+  </tr>`).join('');
+  document.getElementById('emp-table-wrap').innerHTML = `
+    <div class="tbl-note">パスワードは表示できません。忘れたときは「PW初期化」を押すと、
+      新しいパスワードがその場で作られ、画面に出ます。控えて本人に伝えてください。</div>
+    <table class="emp-table">
+    <thead><tr><th>氏名</th><th>ID</th>${showFac ? '<th>事業所</th>' : ''}<th class="col-role">役職</th><th style="text-align:right">操作</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function toggleAddForm() {
+  S.addFormOpen = !S.addFormOpen;
+  document.getElementById('add-emp-form').classList.toggle('hidden', !S.addFormOpen);
+}
+
+async function addEmployee() {
+  const id = document.getElementById('ne-id').value.trim().toUpperCase();
+  const name = document.getElementById('ne-name').value.trim();
+  // 最初のパスワードはこちらで作る。職員IDと同じにはしない。
+  // IDはマネーフォワードの従業員番号で、給与明細にも出る番号だから。
+  const pw = newTempPw();
+  if (!id || !name) { toast('職員IDと氏名を入れてください'); return; }
+  // 職員IDはマネーフォワード勤怠の従業員番号（4桁）。
+  // 訪問看護だけだった頃の V001 形式も、まだ使っているので通す。
+  if (!/^([0-9]{3,5}|V[0-9A-Z]+)$/.test(id)) {
+    toast('職員IDは4桁の従業員番号を入れてください（例 0083）'); return; }
+  const hash = await sha256(pw);
+  const { data: res, error } = await S.sb.rpc('nurse_admin_add', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_new_id: id, p_new_hash: hash, p_name: name,
+    p_view: S.viewFacility || null });
+  if (error || res !== 'ok') {
+    toast(res === 'exists' ? 'このIDは既に使われています'
+        : res === 'nofacility' ? '事業所を選んでから追加してください'
+        : 'エラー: ' + (error?.message || '追加できませんでした')); return;
+  }
+  alert(`${name}（${id}）を追加しました。\n\n`
+      + `最初のパスワードは「${pw}」です。\n`
+      + `この画面を閉じるともう出せません。本人にお伝えください。`);
+  document.getElementById('ne-id').value = '';
+  document.getElementById('ne-name').value = '';
+  toggleAddForm();
+  await loadAllReqs();
+  renderAdminCal();
+}
+
+/* パスワードを作り直す。
+   配ってある管理者手順書に書いてある手順を、そのまま画面から行えるようにしたもの。
+   職員IDに戻すのはやめた。IDはマネーフォワードの従業員番号で、知っている人が多いため。
+   その場で作った短いものを画面に出し、管理者から本人に伝えてもらう。 */
+function newTempPw() {
+  // 紙に書き写すので、読み違えやすい 0 O o 1 l I は使わない
+  const al = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const a = new Uint32Array(6);
+  crypto.getRandomValues(a);
+  return Array.from(a, n => al[n % al.length]).join('');
+}
+async function resetEmpPw(id) {
+  const who = S.employees.find(e => e.employee_id === id);
+  const name = who ? who.name : id;
+  const pw = newTempPw();
+  if (!confirm(`${name}（${id}）のパスワードを作り直します。\n\n`
+             + `新しいパスワードは「${pw}」です。\n`
+             + `控えてから「OK」を押し、本人に伝えてください。\n`
+             + `入ったあとで自分のものに変えてもらってください。\n\nよろしいですか。`)) return;
+  const { data: res, error } = await S.sb.rpc('nurse_admin_reset_pw', {
+    p_id: S.user.employee_id, p_hash: S.hash,
+    p_target: id, p_new_hash: await sha256(pw) });
+  // データベース側の用意がまだのときは、そうと分かるように伝える
+  if (error && (error.code === 'PGRST202' || error.code === '42883')) {
+    toast('この機能はまだ使えません。稲田へご連絡ください', 4000); return;
+  }
+  if (error || res !== 'ok') {
+    toast(res === 'admin' ? '管理者のパスワードはここでは戻せません'
+        : res === 'forbidden' ? 'ほかの事業所の職員は変えられません'
+        : res === 'notfound' ? 'その職員が見つかりません'
+        : 'エラーが発生しました'); return;
+  }
+  alert(`${name}（${id}）の新しいパスワードは「${pw}」です。\n\n`
+      + `この画面を閉じるともう出せません。本人に伝えてください。`);
+}
+
+async function deactivateEmp(id) {
+  const who = S.employees.find(e => e.employee_id === id);
+  if (!confirm(`${who ? who.name + '（' + id + '）' : id} を職員一覧から外します。\n\nよろしいですか。`)) return;
+  const { data: res } = await S.sb.rpc('nurse_admin_deactivate', {
+    p_id: S.user.employee_id, p_hash: S.hash, p_target: id });
+  if (res !== 'ok') {
+    toast(res === 'self' ? '自分は削除できません'
+        : res === 'admin' ? '管理者は削除できません'
+        : res === 'forbidden' ? 'ほかの事業所の職員は削除できません'
+        : 'エラーが発生しました'); return; }
+  toast('削除しました');
+  await loadAllReqs();
+  renderAdminCal();
+}
+
+async function changeAdminPassword() {
+  const cur = document.getElementById('adm-pw-cur').value;
+  const nw  = document.getElementById('adm-pw-new').value;
+  const nw2 = document.getElementById('adm-pw-new2').value;
+  const errEl = document.getElementById('adm-pw-err');
+  errEl.style.display = 'none';
+  if (nw !== nw2) { errEl.textContent = '新しいパスワードが一致しません'; errEl.style.display = 'block'; return; }
+  if (nw.length < 4) { errEl.textContent = 'パスワードは4文字以上'; errEl.style.display = 'block'; return; }
+  const curHash = await sha256(cur);
+  const newHash = await sha256(nw);
+  const { data: res, error } = await S.sb.rpc('nurse_change_password', {
+    p_id: S.user.employee_id, p_old: curHash, p_new: newHash });
+  if (error || res !== 'ok') {
+    errEl.textContent = res === 'auth' ? '現在のパスワードが違います' : 'エラーが発生しました';
+    errEl.style.display = 'block'; return;
+  }
+  S.hash = newHash;
+  toast('パスワードを変更しました');
+  ['adm-pw-cur','adm-pw-new','adm-pw-new2'].forEach(id => { document.getElementById(id).value = ''; });
+}
+
+// ── Print ─────────────────────────────────
+function printMonthlySummary() {
+  const y = S.adminYear, m = S.adminMonth;
+  const days = new Date(y, m, 0).getDate();
+  const emps = S.employees;
+  if (emps.length === 0) { toast('職員データがありません'); return; }
+
+  const DOW = ['日','月','火','水','木','金','土'];
+  const TYPE_COLOR_P = { '日勤':'#2563EB', '休み':'#6B7280', '有給':'#10B981' };
+  const TYPE_LABEL_P = { '日勤':'日勤', '休み':'休み', '有給':'有給' };
+
+  const grid = {};
+  emps.forEach(e => { grid[e.employee_id] = {}; });
+  Object.entries(S.allReqs).forEach(([day, reqs]) => {
+    reqs.forEach(r => {
+      if (grid[r.employee_id] !== undefined) grid[r.employee_id][day] = r;
+    });
+  });
+
+  const dayHeaders = Array.from({length: days}, (_, i) => i+1);
+  const thBase = 'border:1px solid #bbb;padding:2px 1px;text-align:center;font-size:8px;background:#134E4A;color:#fff;font-weight:700';
+  const dayThs = dayHeaders.map(d => {
+    const dow = new Date(y, m-1, d).getDay();
+    const c = dow===0?'#FCA5A5':dow===6?'#93C5FD':'#fff';
+    return `<th style="${thBase};color:${c};min-width:18px"><div>${d}</div><div style="font-size:7px">${DOW[dow]}</div></th>`;
+  }).join('');
+
+  const rows = emps.map(e => {
+    const cells = dayHeaders.map(d => {
+      const r = grid[e.employee_id][d];
+      if (!r) {
+        const dow = new Date(y, m-1, d).getDay();
+        const bg = dow===0?'#FFF0F0':dow===6?'#F0F4FF':'#fff';
+        return `<td style="border:1px solid #ddd;background:${bg}"></td>`;
+      }
+      const lbl = TYPE_LABEL_P[r.type] || r.type;
+      if (r.status === 'rejected') {
+        return `<td style="border:1px solid #bbb;background:#fff;color:#9CA3AF;text-align:center;font-size:8px;padding:1px;text-decoration:line-through">${lbl}</td>`;
+      }
+      const bg = TYPE_COLOR_P[r.type] || '#888';
+      if (!r.status || r.status === 'pending') {
+        // 未処理＝まだ認めていない。枠だけにして、承認済みと見分けられるようにする
+        return `<td style="border:1px solid #bbb;background:#fff;color:${bg};font-weight:700;text-align:center;font-size:8px;padding:1px;box-shadow:inset 0 0 0 2px ${bg}">${lbl}</td>`;
+      }
+      return `<td style="border:1px solid #bbb;background:${bg};color:#fff;font-weight:700;text-align:center;font-size:8px;padding:1px">${lbl}</td>`;
+    }).join('');
+    return `<tr>
+      <td style="border:1px solid #bbb;padding:2px 6px;white-space:nowrap;font-size:9px;background:#F8FAFC;font-weight:700">${esc(e.name)}</td>${cells}
+    </tr>`;
+  }).join('');
+
+  const totals = dayHeaders.map(d => {
+    const rs = (S.allReqs[d] || []).filter(r => r.status !== 'rejected');
+    const cnt = rs.length;
+    const pd  = rs.filter(r => !r.status || r.status === 'pending').length;
+    return `<td style="border:1px solid #bbb;text-align:center;font-size:8px;background:#F1F5F9;font-weight:700;color:${pd ? '#B45309' : '#111'}">${cnt > 0 ? cnt : ''}</td>`;
+  }).join('');
+
+  const notes = Object.entries(S.allNotes).filter(([,v]) => v.note && v.note.trim());
+  const notesHtml = notes.length > 0 ? `
+    <div style="margin-top:10px;border-top:2px solid #333;padding-top:6px">
+      <div style="font-size:10px;font-weight:700;margin-bottom:4px">【特記事項】</div>
+      ${notes.map(([,v]) => `<div style="font-size:9px;margin-bottom:3px;padding:4px 6px;background:#FFFBEB;border-left:3px solid #F59E0B">
+        <span style="font-weight:700">${esc(v.name)}：</span>${esc(v.note).replace(/\n/g,' ')}
+      </div>`).join('')}
+    </div>` : '';
+
+  const stLegend = `
+    <div style="display:flex;align-items:center;gap:3px">
+      <div style="width:12px;height:12px;background:#6B7280;border-radius:2px"></div><span>承認済</span></div>
+    <div style="display:flex;align-items:center;gap:3px">
+      <div style="width:12px;height:12px;background:#fff;border-radius:2px;box-shadow:inset 0 0 0 2px #6B7280"></div><span>未処理</span></div>
+    <div style="display:flex;align-items:center;gap:3px">
+      <span style="text-decoration:line-through;color:#9CA3AF">休み</span><span>却下</span></div>`;
+
+  const legend = Object.entries(TYPE_LABEL_P).map(([type, lbl]) =>
+    `<div style="display:flex;align-items:center;gap:3px">
+      <div style="width:12px;height:12px;background:${TYPE_COLOR_P[type]};border-radius:2px"></div>
+      <span>${lbl}</span>
+    </div>`).join('') + stLegend;
+
+  const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
+    <title>${y}年${m}月 シフト希望一覧</title>
+    <style>
+      @page { size: A4 landscape; margin: 8mm; }
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic','Meiryo',sans-serif;font-size:9px}
+      table{border-collapse:collapse;width:100%}
+    </style>
+  </head><body>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px">
+      <div>
+        <div style="font-size:14px;font-weight:700">${esc(facLabel(S.facility || S.user.facility || S.viewFacility) || '全事業所')}　${y}年${m}月　シフト希望一覧</div>
+        <div style="font-size:8px;color:#666;margin-top:2px">医療法人いなだ医院　メディケアビレッジ　／　印刷日：${new Date().toLocaleDateString('ja-JP')}</div>
+      </div>
+      <div style="display:flex;gap:10px;font-size:8px">${legend}</div>
+    </div>
+    <table>
+      <thead><tr>
+        <th style="${thBase};min-width:64px;text-align:left;padding:4px">氏名</th>${dayThs}
+      </tr></thead>
+      <tbody>
+        ${rows}
+        <tr>
+          <td style="border:1px solid #bbb;padding:2px 4px;font-size:8px;font-weight:700;background:#F1F5F9;text-align:right">件数</td>${totals}
+        </tr>
+      </tbody>
+    </table>
+    ${notesHtml}
+    <script>window.onload=function(){window.print();}<\/script>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) {
+    toast('印刷用の画面を開けませんでした。ブラウザのポップアップの設定をご確認ください', 4000);
+    return;
+  }
+  w.document.write(html);
+  w.document.close();
+}
+</script>
 </body>
 </html>
